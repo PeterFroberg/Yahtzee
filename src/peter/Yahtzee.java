@@ -10,7 +10,7 @@ public class Yahtzee extends JPanel {
     private DatabaseHandler databaseHandler = new DatabaseHandler();
 
     private static JMenuBar menuBar = new JMenuBar();
-    private JPanel topPanel = new JPanel();
+    private JPanel topPanel = new JPanel(new GridLayout(2,6));
     private JPanel centerPanel = new JPanel();
     private JPanel rightPanel = new JPanel();
     private JPanel bottomPanel = new JPanel();
@@ -24,22 +24,43 @@ public class Yahtzee extends JPanel {
     /**
      * Create GUI components for the application
      */
+
+    //Menu items
+    private static JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
+    private static JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
+    private static JMenuItem menuItemExit = new JMenuItem("Exit");
+
     private static JTextArea textAreaChatArea = new JTextArea("");
     private static JTextArea textAreaScore = new JTextArea("");
 
     private static JTextField jTextFieldChatInput = new JTextField("Inmatning av chatt");
-    private static JTextField jTextFieldDiceResult = new JTextField("1,2,3,4");
+
+    private static JTextField jTextFieldDiceResult1 = new JTextField("1");
+    private static JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
+    private static JTextField jTextFieldDiceResult2 = new JTextField("2");
+    private static JCheckBox jCheckBoxDiceResult2 = new JCheckBox();
+    private static JTextField jTextFieldDiceResult3 = new JTextField("3");
+    private static JCheckBox jCheckBoxDiceResult3 = new JCheckBox();
+    private static JTextField jTextFieldDiceResult4 = new JTextField("4");
+    private static JCheckBox jCheckBoxDiceResult4 = new JCheckBox();
+    private static JTextField jTextFieldDiceResult5 = new JTextField("5");
+    private static JCheckBox jCheckBoxDiceResult5 = new JCheckBox();
 
 
     private static JButton buttonSendChat = new JButton("Send");
+    private static JButton buttonSaveResult = new JButton("Save");
 
 
     public Yahtzee() {
         //Create Menu
         menuBar = new JMenuBar();
         JMenu menu = new JMenu("Play");
-
         menuBar.add(menu);
+
+        menu.add(menuItemInvitePlayers);
+        menu.add(menuItemScoreBoard);
+        menu.add(menuItemExit);
+
 
 
 
@@ -50,7 +71,44 @@ public class Yahtzee extends JPanel {
 
         setLayout(new BorderLayout());
         //Populate toppanel
-        topPanel.add(jTextFieldDiceResult);
+        topPanel.add(new JLabel("Dices"));
+        jTextFieldDiceResult1.setEditable(false);
+        jTextFieldDiceResult1.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jTextFieldDiceResult1);
+
+        jTextFieldDiceResult2.setEditable(false);
+        jTextFieldDiceResult2.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jTextFieldDiceResult2);
+
+        jTextFieldDiceResult3.setEditable(false);
+        jTextFieldDiceResult3.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jTextFieldDiceResult3);
+
+        jTextFieldDiceResult4.setEditable(false);
+        jTextFieldDiceResult4.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jTextFieldDiceResult4);
+
+        jTextFieldDiceResult5.setEditable(false);
+        jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jTextFieldDiceResult5);
+
+        topPanel.add(new JLabel("Save result"));
+
+
+
+        topPanel.add(new JLabel("Save this dice:"));
+        topPanel.add(jCheckBoxDiceResult1);
+        jCheckBoxDiceResult1.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jCheckBoxDiceResult2);
+        jCheckBoxDiceResult2.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jCheckBoxDiceResult3);
+        jCheckBoxDiceResult3.setHorizontalAlignment(JTextField.CENTER);
+        topPanel.add(jCheckBoxDiceResult4);
+        jCheckBoxDiceResult4.setHorizontalAlignment(JCheckBox.CENTER);
+        topPanel.add(jCheckBoxDiceResult5);
+        jCheckBoxDiceResult5.setHorizontalAlignment(JCheckBox.CENTER);
+
+        topPanel.add(buttonSaveResult);
 
         add(topPanel,BorderLayout.NORTH);
         add(rightPanel, BorderLayout.EAST);
