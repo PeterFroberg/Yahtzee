@@ -12,7 +12,9 @@ public class Yahtzee extends JPanel {
     private static JMenuBar menuBar = new JMenuBar();
     private JPanel topPanel = new JPanel(new GridLayout(2,6));
     private JPanel centerPanel = new JPanel();
-    private JPanel rightPanel = new JPanel();
+    private JPanel rightTopPanel = new JPanel();
+    private JPanel rightMiddelPanel = new JPanel();
+    private JPanel rightBottomPanel = new JPanel();
     private JPanel bottomPanel = new JPanel();
 
 
@@ -30,7 +32,7 @@ public class Yahtzee extends JPanel {
     private static JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
     private static JMenuItem menuItemExit = new JMenuItem("Exit");
 
-    private static JTextArea textAreaChatArea = new JTextArea("");
+    private static JTextArea textAreaChatArea = new JTextArea("Detta är chat meddelanden");
     private static JTextArea textAreaScore = new JTextArea("");
 
     private static JTextField jTextFieldChatInput = new JTextField("Inmatning av chatt");
@@ -48,7 +50,8 @@ public class Yahtzee extends JPanel {
 
 
     private static JButton buttonSendChat = new JButton("Send");
-    private static JButton buttonSaveResult = new JButton("Save");
+    private static JButton buttonRollAgain = new JButton("Roll dices");
+    private static JButton buttonSaveResult = new JButton("Save Result");
 
 
     public Yahtzee() {
@@ -68,6 +71,11 @@ public class Yahtzee extends JPanel {
         JPanel outerCenterPanel = new JPanel(new BorderLayout());
         outerCenterPanel.add(centerPanel, BorderLayout.CENTER);
         outerCenterPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        JPanel outerRightPanel = new JPanel(new BorderLayout());
+        outerRightPanel.add(rightTopPanel, BorderLayout.CENTER);
+        outerRightPanel.add(rightMiddelPanel, BorderLayout.SOUTH);
+        //outerRightPanel.add(rightBottomPanel, BorderLayout.CENTER);
 
         setLayout(new BorderLayout());
         //Populate toppanel
@@ -92,9 +100,7 @@ public class Yahtzee extends JPanel {
         jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
         topPanel.add(jTextFieldDiceResult5);
 
-        topPanel.add(new JLabel("Save result"));
-
-
+        topPanel.add(buttonRollAgain);
 
         topPanel.add(new JLabel("Save this dice:"));
         topPanel.add(jCheckBoxDiceResult1);
@@ -109,22 +115,35 @@ public class Yahtzee extends JPanel {
         jCheckBoxDiceResult5.setHorizontalAlignment(JCheckBox.CENTER);
 
         topPanel.add(buttonSaveResult);
+        //populate Right top panel
+        rightTopPanel.add(textAreaChatArea);
+
+        //Populate rightmiddel panel
+        rightMiddelPanel.add(jTextFieldChatInput);
+        rightMiddelPanel.add(buttonSendChat);
 
         add(topPanel,BorderLayout.NORTH);
-        add(rightPanel, BorderLayout.EAST);
+        add(outerRightPanel, BorderLayout.EAST);
+        //add(rightPanel, BorderLayout.EAST);
         add(outerCenterPanel, BorderLayout.CENTER);
 
 
         topPanel.setMinimumSize(new Dimension(0,50));
-        rightPanel.setMinimumSize(new Dimension(150, 0));
+        outerRightPanel.setMinimumSize(new Dimension(180, 0));
+        rightTopPanel.setMinimumSize(new Dimension(170,50));
+        rightMiddelPanel.setMinimumSize(new Dimension(170, 80));
         bottomPanel.setMinimumSize(new Dimension(0, 350));
 
         topPanel.setPreferredSize(topPanel.getMinimumSize());
-        rightPanel.setPreferredSize(rightPanel.getMinimumSize());
+        outerRightPanel.setPreferredSize(outerRightPanel.getMinimumSize());
+        rightTopPanel.setPreferredSize(rightTopPanel.getMinimumSize());
+        rightMiddelPanel.setPreferredSize((rightMiddelPanel.getMinimumSize()));
         bottomPanel.setPreferredSize(bottomPanel.getMinimumSize());
 
-        topPanel.setBorder(BorderFactory.createLineBorder(Color.ORANGE));
-        rightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
+        topPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
+        outerRightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
+        rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.cyan));
         bottomPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
         centerPanel.setBorder(BorderFactory.createLineBorder(Color.green));
 
