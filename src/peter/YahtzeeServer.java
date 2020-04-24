@@ -2,6 +2,7 @@ package peter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,6 +36,60 @@ public class YahtzeeServer implements Runnable {
          */
         PrintWriter socketWriter = null;
         BufferedReader socketReader = null;
+        try{
+            socketWriter = new PrintWriter(clientSocket.getOutputStream(),true);
+            PrintWriter finalSocketWriter =socketWriter;
+
+            new Thread(() -> {
+                String mess;
+                while (true){
+                    try{
+                        /**
+                         * wait for a new message to arrive in the clients messagequeue and the send it to the client
+                         */
+                        mess = (String)clientMessageQueue.take();
+                        //Send the message to the client
+                        finalSocketWriter.println(mess);
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+            String inputLine = socketReader.readLine();
+
+            ////Kontrolera vilket typ av meddelande och hantera det
+
+            //Om det är chatt
+
+            while (inputLine != null){
+                synchronized (Lock){
+                    for(LinkedBlockingQueue que : clientMessagesQueues){
+                        if(que != clientMessageQueue){
+                            que.put("PlayerName: " + inputLine);
+                        }
+                    }
+                }
+                Thread.sleep(100);
+                try{
+                    inputLine = socketReader.readLine();
+                }catch (SocketException e){
+                    e.printStackTrace();
+                    break;
+                }
+            }
+
+
+        }catch (SocketException e){
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            clientMessagesQueues.remove(clientMessageQueue);
+        }
 
 
     }
@@ -71,6 +126,16 @@ public class YahtzeeServer implements Runnable {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }finally{
+
+            try{
+                if(serverSocket!=null){
+                    serverSocket.close();
+                }
+
+            }catch (IOException e){
+                e.printStackTrace();
+            }
         }
 
 
