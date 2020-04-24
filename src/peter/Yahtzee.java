@@ -16,42 +16,34 @@ public class Yahtzee extends JPanel {
     private DatabaseHandler databaseHandler = new DatabaseHandler();
 
     private static JMenuBar menuBar = new JMenuBar();
-    private JPanel topPanel = new JPanel(new GridLayout(2, 6));
-    private JPanel centerPanel = new JPanel();
-    private JPanel rightTopPanel = new JPanel(new BorderLayout());
-    private JPanel rightMiddelPanel = new JPanel(new BorderLayout());
-    private JPanel rightBottomPanel = new JPanel();
-    private JPanel bottomPanel = new JPanel();
 
     /**
      * Create GUI components for the application
      */
 
     //Menu items
-    private static JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
-    private static JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
+    private JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
+    private JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
     private JMenuItem menuItemLogin = new JMenuItem("Login");
-    private static JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
-    private static JMenuItem menuItemExit = new JMenuItem("Exit");
+    private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
+    private JMenuItem menuItemExit = new JMenuItem("Exit");
 
-    private static JTextArea textAreaChatArea = new JTextArea("Detta är chat meddelanden");
-    private static JTextArea textAreaScore = new JTextArea("");
-    private static JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
+    //Textareas
+    private JTextArea textAreaChatArea = new JTextArea("Detta är chat meddelanden");
+    private JTextArea textAreaScore = new JTextArea("");
+    private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
 
-    private static JTextField jTextFieldDiceResult1 = new JTextField("1");
-    private static JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
-    private static JTextField jTextFieldDiceResult2 = new JTextField("2");
-    private static JCheckBox jCheckBoxDiceResult2 = new JCheckBox();
-    private static JTextField jTextFieldDiceResult3 = new JTextField("3");
-    private static JCheckBox jCheckBoxDiceResult3 = new JCheckBox();
-    private static JTextField jTextFieldDiceResult4 = new JTextField("4");
-    private static JCheckBox jCheckBoxDiceResult4 = new JCheckBox();
-    private static JTextField jTextFieldDiceResult5 = new JTextField("5");
-    private static JCheckBox jCheckBoxDiceResult5 = new JCheckBox();
-
-    private static JButton buttonSendChat = new JButton("Send");
-    private static JButton buttonRollAgain = new JButton("Roll dices");
-    private static JButton buttonSaveResult = new JButton("Save Result");
+    //TExtfields
+    private JTextField jTextFieldDiceResult1 = new JTextField("1");
+    private JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
+    private JTextField jTextFieldDiceResult2 = new JTextField("2");
+    private JCheckBox jCheckBoxDiceResult2 = new JCheckBox();
+    private JTextField jTextFieldDiceResult3 = new JTextField("3");
+    private JCheckBox jCheckBoxDiceResult3 = new JCheckBox();
+    private JTextField jTextFieldDiceResult4 = new JTextField("4");
+    private JCheckBox jCheckBoxDiceResult4 = new JCheckBox();
+    private JTextField jTextFieldDiceResult5 = new JTextField("5");
+    private JCheckBox jCheckBoxDiceResult5 = new JCheckBox();
 
     private JTextField jTextFilednewUserInputName = new JTextField(45);
     private JTextField jTextFieldnewUserInputEmail = new JTextField(45);
@@ -60,96 +52,22 @@ public class Yahtzee extends JPanel {
     private JTextField jTextFieldLoginName = new JTextField(45);
     private JTextField jTextFieldLoginPassword = new JPasswordField(45);
 
+    //Buttons
+    private JButton buttonSendChat = new JButton("Send");
+    private JButton buttonRollAgain = new JButton("Roll dices");
+    private JButton buttonSaveResult = new JButton("Save Result");
+
     public Yahtzee() {
 
         //Create Menu
         menuBar = createMenuBar();
-
-
-        JPanel outerCenterPanel = new JPanel(new BorderLayout());
-        outerCenterPanel.add(centerPanel, BorderLayout.CENTER);
-        outerCenterPanel.add(bottomPanel, BorderLayout.SOUTH);
-
-        JPanel outerRightPanel = new JPanel(new BorderLayout());
-        outerRightPanel.add(rightTopPanel, BorderLayout.NORTH);
-        outerRightPanel.add(rightMiddelPanel, BorderLayout.CENTER);
-        outerRightPanel.add(rightBottomPanel, BorderLayout.SOUTH);
-        //outerRightPanel.add(rightBottomPanel, BorderLayout.CENTER);
-
+        //Layout on frame
         setLayout(new BorderLayout());
-        //Populate toppanel
-        topPanel.add(new JLabel("Dices"));
-        jTextFieldDiceResult1.setEditable(false);
-        jTextFieldDiceResult1.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jTextFieldDiceResult1);
-
-        jTextFieldDiceResult2.setEditable(false);
-        jTextFieldDiceResult2.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jTextFieldDiceResult2);
-
-        jTextFieldDiceResult3.setEditable(false);
-        jTextFieldDiceResult3.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jTextFieldDiceResult3);
-
-        jTextFieldDiceResult4.setEditable(false);
-        jTextFieldDiceResult4.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jTextFieldDiceResult4);
-
-        jTextFieldDiceResult5.setEditable(false);
-        jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jTextFieldDiceResult5);
-
-        topPanel.add(buttonRollAgain);
-
-        topPanel.add(new JLabel("Save this dice:"));
-        topPanel.add(jCheckBoxDiceResult1);
-        jCheckBoxDiceResult1.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jCheckBoxDiceResult2);
-        jCheckBoxDiceResult2.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jCheckBoxDiceResult3);
-        jCheckBoxDiceResult3.setHorizontalAlignment(JTextField.CENTER);
-        topPanel.add(jCheckBoxDiceResult4);
-        jCheckBoxDiceResult4.setHorizontalAlignment(JCheckBox.CENTER);
-        topPanel.add(jCheckBoxDiceResult5);
-        jCheckBoxDiceResult5.setHorizontalAlignment(JCheckBox.CENTER);
-
-        topPanel.add(buttonSaveResult);
-        //populate Right top panel
-        rightTopPanel.add(textAreaChatArea);
-
-        //Populate rightmiddel panel
-        rightMiddelPanel.add(jTextAreaChatInput);
-
-
-        //Populate rightbottom panel
-        rightBottomPanel.add(buttonSendChat);
 
         //Add panels to the frame
-        add(topPanel, BorderLayout.NORTH);
-        add(outerRightPanel, BorderLayout.EAST);
-        add(outerCenterPanel, BorderLayout.CENTER);
-
-        topPanel.setMinimumSize(new Dimension(0, 50));
-        outerRightPanel.setMinimumSize(new Dimension(180, 0));
-        rightTopPanel.setMinimumSize(new Dimension(170, 350));
-        rightMiddelPanel.setMinimumSize(new Dimension(170, 80));
-        rightBottomPanel.setMinimumSize(new Dimension(170, 40));
-        bottomPanel.setMinimumSize(new Dimension(0, 350));
-
-        topPanel.setPreferredSize(topPanel.getMinimumSize());
-        outerRightPanel.setPreferredSize(outerRightPanel.getMinimumSize());
-        rightTopPanel.setPreferredSize(rightTopPanel.getMinimumSize());
-        rightMiddelPanel.setPreferredSize((rightMiddelPanel.getMinimumSize()));
-        rightBottomPanel.setPreferredSize(rightBottomPanel.getMinimumSize());
-        bottomPanel.setPreferredSize(bottomPanel.getMinimumSize());
-
-        topPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
-        outerRightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
-        rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.black));
-        rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.cyan));
-        rightBottomPanel.setBorder(BorderFactory.createLineBorder(Color.yellow));
-        bottomPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
-        centerPanel.setBorder(BorderFactory.createLineBorder(Color.green));
+        add(mainTopPanel(), BorderLayout.NORTH);
+        add(mainRightPanel(), BorderLayout.EAST);
+        add(mainCenterPanel(), BorderLayout.CENTER);
     }
 
     private void loginplayer(){
@@ -188,12 +106,103 @@ public class Yahtzee extends JPanel {
                     player.setName(jTextFilednewUserInputName.getText());
                     player.setEmail(jTextFieldnewUserInputEmail.getText());
                     player.setPassword(newUserInputPassword.getText());
+                }else{
+                    JOptionPane.showMessageDialog(this, "User already exists!, Use another email account");
                 }
                 menuItemInvitePlayers.setEnabled(true);
                 menuItemScoreBoard.setEnabled(true);
             }
             endUserInput = true;
         }
+    }
+
+    private JPanel mainTopPanel(){
+        JPanel mainTopPanel = new JPanel(new GridLayout(2, 6));
+        mainTopPanel.add(new JLabel("Dices"));
+        jTextFieldDiceResult1.setEditable(false);
+        jTextFieldDiceResult1.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jTextFieldDiceResult1);
+
+        jTextFieldDiceResult2.setEditable(false);
+        jTextFieldDiceResult2.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jTextFieldDiceResult2);
+
+        jTextFieldDiceResult3.setEditable(false);
+        jTextFieldDiceResult3.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jTextFieldDiceResult3);
+
+        jTextFieldDiceResult4.setEditable(false);
+        jTextFieldDiceResult4.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jTextFieldDiceResult4);
+
+        jTextFieldDiceResult5.setEditable(false);
+        jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jTextFieldDiceResult5);
+
+        mainTopPanel.add(buttonRollAgain);
+
+        mainTopPanel.add(new JLabel("Save this dice:"));
+        mainTopPanel.add(jCheckBoxDiceResult1);
+        jCheckBoxDiceResult1.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jCheckBoxDiceResult2);
+        jCheckBoxDiceResult2.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jCheckBoxDiceResult3);
+        jCheckBoxDiceResult3.setHorizontalAlignment(JTextField.CENTER);
+        mainTopPanel.add(jCheckBoxDiceResult4);
+        jCheckBoxDiceResult4.setHorizontalAlignment(JCheckBox.CENTER);
+        mainTopPanel.add(jCheckBoxDiceResult5);
+        jCheckBoxDiceResult5.setHorizontalAlignment(JCheckBox.CENTER);
+
+        mainTopPanel.setMinimumSize(new Dimension(0, 50));
+        mainTopPanel.setPreferredSize(mainTopPanel.getMinimumSize());
+        mainTopPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
+
+        mainTopPanel.add(buttonSaveResult);
+
+        return mainTopPanel;
+    }
+
+    private JPanel mainCenterPanel(){
+        JPanel mainCenterPanel = new JPanel(new BorderLayout());
+        mainCenterPanel.setBorder(BorderFactory.createLineBorder(Color.green));
+
+        return mainCenterPanel;
+    }
+
+    private JPanel mainRightPanel(){
+        JPanel rightTopPanel = new JPanel(new BorderLayout());
+        JPanel rightMiddelPanel = new JPanel(new BorderLayout());
+        JPanel rightBottomPanel = new JPanel();
+
+        JPanel mainRightPanel = new JPanel(new BorderLayout());
+        mainRightPanel.add(rightTopPanel, BorderLayout.NORTH);
+        mainRightPanel.add(rightMiddelPanel, BorderLayout.CENTER);
+        mainRightPanel.add(rightBottomPanel, BorderLayout.SOUTH);
+
+        rightTopPanel.add(textAreaChatArea);
+
+        //Populate rightmiddel panel
+        rightMiddelPanel.add(jTextAreaChatInput);
+
+        //Populate rightbottom panel
+        rightBottomPanel.add(buttonSendChat);
+
+        mainRightPanel.setMinimumSize(new Dimension(180, 0));
+        rightTopPanel.setMinimumSize(new Dimension(170, 350));
+        rightMiddelPanel.setMinimumSize(new Dimension(170, 80));
+        rightBottomPanel.setMinimumSize(new Dimension(170, 40));
+
+        mainRightPanel.setPreferredSize(mainRightPanel.getMinimumSize());
+        rightTopPanel.setPreferredSize(rightTopPanel.getMinimumSize());
+        rightMiddelPanel.setPreferredSize((rightMiddelPanel.getMinimumSize()));
+        rightBottomPanel.setPreferredSize(rightBottomPanel.getMinimumSize());
+
+        mainRightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
+        rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.black));
+        rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.cyan));
+        rightBottomPanel.setBorder(BorderFactory.createLineBorder(Color.yellow));
+
+        return mainRightPanel;
     }
 
     private JPanel loginPanel(){
@@ -289,7 +298,7 @@ public class Yahtzee extends JPanel {
 
         Yahtzee mainPanel = new Yahtzee();
 
-        JFrame frame = new JFrame("EmielGui");
+        JFrame frame = new JFrame("Peters online Yahtzee game!");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(mainPanel);
         frame.setJMenuBar(menuBar);
