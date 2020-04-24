@@ -116,6 +116,10 @@ public class Yahtzee extends JPanel {
         }
     }
 
+    private void invitePlayer(){
+
+    }
+
     private JPanel mainTopPanel(){
         JPanel mainTopPanel = new JPanel(new GridLayout(2, 6));
         mainTopPanel.add(new JLabel("Dices"));
