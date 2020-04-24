@@ -2,40 +2,41 @@ package peter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 
 public class Yahtzee extends JPanel {
+
+    private Player player = new Player();
+
     /**
      * Create a databasehandler to take care of database communication
      */
     private DatabaseHandler databaseHandler = new DatabaseHandler();
 
     private static JMenuBar menuBar = new JMenuBar();
-    private JPanel topPanel = new JPanel(new GridLayout(2,6));
+    private JPanel topPanel = new JPanel(new GridLayout(2, 6));
     private JPanel centerPanel = new JPanel();
-    private JPanel rightTopPanel = new JPanel();
-    private JPanel rightMiddelPanel = new JPanel();
+    private JPanel rightTopPanel = new JPanel(new BorderLayout());
+    private JPanel rightMiddelPanel = new JPanel(new BorderLayout());
     private JPanel rightBottomPanel = new JPanel();
     private JPanel bottomPanel = new JPanel();
-
-
-   /* final static boolean shouldFill = true;
-    final static boolean shouldWeightX = true;
-    final static boolean RIGHT_TO_LEFT = false;*/
-
 
     /**
      * Create GUI components for the application
      */
 
     //Menu items
+    private static JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
     private static JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
+    private JMenuItem menuItemLogin = new JMenuItem("Login");
     private static JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
     private static JMenuItem menuItemExit = new JMenuItem("Exit");
 
     private static JTextArea textAreaChatArea = new JTextArea("Detta är chat meddelanden");
     private static JTextArea textAreaScore = new JTextArea("");
-
-    private static JTextField jTextFieldChatInput = new JTextField("Inmatning av chatt");
+    private static JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
 
     private static JTextField jTextFieldDiceResult1 = new JTextField("1");
     private static JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
@@ -48,24 +49,21 @@ public class Yahtzee extends JPanel {
     private static JTextField jTextFieldDiceResult5 = new JTextField("5");
     private static JCheckBox jCheckBoxDiceResult5 = new JCheckBox();
 
-
     private static JButton buttonSendChat = new JButton("Send");
     private static JButton buttonRollAgain = new JButton("Roll dices");
     private static JButton buttonSaveResult = new JButton("Save Result");
 
+    private JTextField jTextFilednewUserInputName = new JTextField(45);
+    private JTextField jTextFieldnewUserInputEmail = new JTextField(45);
+    private JTextField newUserInputPassword = new JPasswordField(45);
+
+    private JTextField jTextFieldLoginName = new JTextField(45);
+    private JTextField jTextFieldLoginPassword = new JPasswordField(45);
 
     public Yahtzee() {
+
         //Create Menu
-        menuBar = new JMenuBar();
-        JMenu menu = new JMenu("Play");
-        menuBar.add(menu);
-
-        menu.add(menuItemInvitePlayers);
-        menu.add(menuItemScoreBoard);
-        menu.add(menuItemExit);
-
-
-
+        menuBar = createMenuBar();
 
 
         JPanel outerCenterPanel = new JPanel(new BorderLayout());
@@ -73,8 +71,9 @@ public class Yahtzee extends JPanel {
         outerCenterPanel.add(bottomPanel, BorderLayout.SOUTH);
 
         JPanel outerRightPanel = new JPanel(new BorderLayout());
-        outerRightPanel.add(rightTopPanel, BorderLayout.CENTER);
-        outerRightPanel.add(rightMiddelPanel, BorderLayout.SOUTH);
+        outerRightPanel.add(rightTopPanel, BorderLayout.NORTH);
+        outerRightPanel.add(rightMiddelPanel, BorderLayout.CENTER);
+        outerRightPanel.add(rightBottomPanel, BorderLayout.SOUTH);
         //outerRightPanel.add(rightBottomPanel, BorderLayout.CENTER);
 
         setLayout(new BorderLayout());
@@ -119,153 +118,174 @@ public class Yahtzee extends JPanel {
         rightTopPanel.add(textAreaChatArea);
 
         //Populate rightmiddel panel
-        rightMiddelPanel.add(jTextFieldChatInput);
-        rightMiddelPanel.add(buttonSendChat);
+        rightMiddelPanel.add(jTextAreaChatInput);
 
-        add(topPanel,BorderLayout.NORTH);
+
+        //Populate rightbottom panel
+        rightBottomPanel.add(buttonSendChat);
+
+        //Add panels to the frame
+        add(topPanel, BorderLayout.NORTH);
         add(outerRightPanel, BorderLayout.EAST);
-        //add(rightPanel, BorderLayout.EAST);
         add(outerCenterPanel, BorderLayout.CENTER);
 
-
-        topPanel.setMinimumSize(new Dimension(0,50));
+        topPanel.setMinimumSize(new Dimension(0, 50));
         outerRightPanel.setMinimumSize(new Dimension(180, 0));
-        rightTopPanel.setMinimumSize(new Dimension(170,50));
+        rightTopPanel.setMinimumSize(new Dimension(170, 350));
         rightMiddelPanel.setMinimumSize(new Dimension(170, 80));
+        rightBottomPanel.setMinimumSize(new Dimension(170, 40));
         bottomPanel.setMinimumSize(new Dimension(0, 350));
 
         topPanel.setPreferredSize(topPanel.getMinimumSize());
         outerRightPanel.setPreferredSize(outerRightPanel.getMinimumSize());
         rightTopPanel.setPreferredSize(rightTopPanel.getMinimumSize());
         rightMiddelPanel.setPreferredSize((rightMiddelPanel.getMinimumSize()));
+        rightBottomPanel.setPreferredSize(rightBottomPanel.getMinimumSize());
         bottomPanel.setPreferredSize(bottomPanel.getMinimumSize());
 
         topPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
         outerRightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
         rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.black));
         rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.cyan));
+        rightBottomPanel.setBorder(BorderFactory.createLineBorder(Color.yellow));
         bottomPanel.setBorder(BorderFactory.createLineBorder(Color.blue));
         centerPanel.setBorder(BorderFactory.createLineBorder(Color.green));
-
-        /*new Timer(DELAY, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dimen += DELTA_DIMEN;
-                if (dimen < MAX_DIMEN) {
-                    centerPanel.setPreferredSize(new Dimension(dimen, dimen));
-                    SwingUtilities.getWindowAncestor(EmielGui.this).pack();
-
-                } else {
-                    ((Timer) e.getSource()).stop();
-                }
-            }
-        }).start();*/
     }
 
-   /* public static void addComponentsToPane(Container pane){
+    private void loginplayer(){
+        Boolean endLogin = false;
+        while (!endLogin){
+            int buttonPressed = JOptionPane.showConfirmDialog(null, loginPanel(),"User Login"
+                    , JOptionPane.OK_CANCEL_OPTION
+                    , JOptionPane.PLAIN_MESSAGE);
+            if(buttonPressed == JOptionPane.OK_OPTION){
+                databaseHandler.connectToDatabase();
+                player = databaseHandler.login(jTextFieldLoginName.getText(), jTextFieldLoginPassword.getText());
+                if(player != null){
+                    jTextFieldLoginPassword.setText("");
+                    endLogin = true;
+                }
+                JOptionPane.showMessageDialog(this, "Unable to Login! Either User dont exist, wrong username or wrong password!");
 
-        *//**
-         * Setting up GUI space, by adding GUI components
-         *//*
-
-        pane.setLayout(new GridBagLayout());
-        GridBagConstraints gridBagConstraints = new GridBagConstraints();
-
-        if (shouldFill){
-            gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+            }else{
+                endLogin = true;
+            }
         }
-        if(shouldWeightX){
-            gridBagConstraints.weightx = 0.5;
+    }
+
+    private void createNewUser() {
+        Boolean endUserInput = false;
+        while (!endUserInput) {
+            int buttonPressed = JOptionPane.showConfirmDialog(
+                    null, newUserPanel(), "New user Form : "
+                    , JOptionPane.OK_CANCEL_OPTION
+                    , JOptionPane.PLAIN_MESSAGE);
+            if (buttonPressed == JOptionPane.OK_OPTION) {
+                databaseHandler.connectToDatabase();
+                int newDBID = databaseHandler.insertPlayer(jTextFilednewUserInputName.getText(), jTextFieldnewUserInputEmail.getText(), newUserInputPassword.getText());
+                if (newDBID != 0) {
+                    player.setID(newDBID);
+                    player.setName(jTextFilednewUserInputName.getText());
+                    player.setEmail(jTextFieldnewUserInputEmail.getText());
+                    player.setPassword(newUserInputPassword.getText());
+                }
+                menuItemInvitePlayers.setEnabled(true);
+                menuItemScoreBoard.setEnabled(true);
+            }
+            endUserInput = true;
         }
-        //Dices
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipady = 0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.anchor = GridBagConstraints.PAGE_START;
-        gridBagConstraints.insets = new Insets(10,0,0,0);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.gridy = 0;
-        pane.add(jTextFieldDiceResult,gridBagConstraints);
-        //Scoreboard
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipady = 300;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new Insets(5,0,0,0);
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridwidth = 1;
-        gridBagConstraints.gridy = 1;
-        pane.add(textAreaScore,gridBagConstraints);
+    }
 
-        //Chat textarea
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipady = 300;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new Insets(5,0,0,5);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridwidth = 1;
-        gridBagConstraints.gridy = 1;
-        pane.add(textAreaChatArea,gridBagConstraints);
+    private JPanel loginPanel(){
+        JPanel loginPanel = new JPanel();
 
-        //Chat writefield
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipady = 0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new Insets(5,0,0,0);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridwidth = 1;
-        gridBagConstraints.gridy = 2;
-        pane.add(jTextFieldChatInput,gridBagConstraints);
+        JPanel leftLoginPanel = new JPanel();
+        leftLoginPanel.setLayout(new GridLayout(3,2,5,5));
+        leftLoginPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftLoginPanel.add(new JLabel("E-mail: "));
+        leftLoginPanel.add(new JLabel("Password: "));
 
-        //Send Button
-        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipady = 0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.anchor = GridBagConstraints.PAGE_END;
-        gridBagConstraints.insets = new Insets(10,0,0,0);
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.gridy = 3;
+        JPanel centerLoginPanel = new JPanel();
+        centerLoginPanel.setLayout(new GridLayout(3,2,5,5));
+        centerLoginPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerLoginPanel.add(jTextFieldLoginName);
+        centerLoginPanel.add(jTextFieldLoginPassword);
 
-        pane.add(buttonSendChat, gridBagConstraints);
+        loginPanel.add(leftLoginPanel);
+        loginPanel.add(centerLoginPanel);
 
-//        //NORTH
-//        JPanel jPanelNorth = new JPanel();
-//        jPanelNorth.setLayout(new GridBagLayout());
-//        GridBagConstraints gridBagConstraints = new GridBagConstraints();
-//
-//        if (shouldFill) {
-//            //natural height, maximum width
-//            gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-//        }
-//
-//        jPanelNorth.add(jTextFieldDiceResult);
-//        //EAST
-//        JPanel jPanelEast = new JPanel();
-//        jPanelEast.setLayout(new GridLayout(4,1));
-//        jPanelEast.add(new JLabel("Game chatroom"));
-//        jPanelEast.add(this.textAreaChatArea);
-//        jPanelEast.add(this.jTextFieldChatInput);
-//
-//        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-//        gridBagConstraints.ipady = 0;
-//        gridBagConstraints.weighty = 1.0;
-//        gridBagConstraints.anchor = GridBagConstraints.PAGE_END;
-//        gridBagConstraints.insets = new Insets(10,0,0,0);
-//        gridBagConstraints.gridx = 1;
-//        gridBagConstraints.gridwidth = 2;
-//        gridBagConstraints.gridy = 2;
-//
-//        jPanelEast.add(this.buttonSendChat);
+        return loginPanel;
+    }
 
+    private JPanel newUserPanel() {
+        JPanel newUserPanel = new JPanel();
 
+        JPanel centerUserPanel = new JPanel();
+        centerUserPanel.setLayout(new GridLayout(4, 2, 5, 5));
+        centerUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
+        centerUserPanel.add(new JLabel("Namn: "));
+        centerUserPanel.add(jTextFilednewUserInputName);
+        centerUserPanel.add(new JLabel("Email: "));
+        centerUserPanel.add(jTextFieldnewUserInputEmail);
+        centerUserPanel.add(new JLabel("Password"));
+        centerUserPanel.add(newUserInputPassword);
 
+        newUserPanel.add(centerUserPanel);
 
-    }*/
+        return newUserPanel;
+    }
 
-    private static void createAndShowGUI(){
+    private JMenuBar createMenuBar(){
+        menuBar = new JMenuBar();
+        JMenu menu = new JMenu("Play");
+        menu.setMnemonic(KeyEvent.VK_P);
+        menuBar.add(menu);
+
+        menuItemCreateNewPlayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, ActionEvent.ALT_MASK));
+
+        menuItemLogin.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, ActionEvent.ALT_MASK));
+
+        menuItemInvitePlayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.ALT_MASK));
+        menuItemInvitePlayers.setEnabled(false);
+
+        menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.ALT_MASK)));
+        menuItemScoreBoard.setEnabled(false);
+
+        menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, ActionEvent.ALT_MASK)));
+
+        //Set action Listeners to menu items
+        menuItemCreateNewPlayer.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                createNewUser();
+            }
+        });
+
+        menuItemLogin.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                loginplayer();
+            }
+        });
+
+        menuItemExit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                System.exit(0);
+            }
+        });
+
+        menu.add(menuItemCreateNewPlayer);
+        menu.add(menuItemLogin);
+        menu.add(menuItemInvitePlayers);
+        menu.add(menuItemScoreBoard);
+        menu.add(menuItemExit);
+
+        return menuBar;
+    }
+
+    private static void createAndShowGUI() {
 
         Yahtzee mainPanel = new Yahtzee();
 
@@ -274,22 +294,12 @@ public class Yahtzee extends JPanel {
         frame.getContentPane().add(mainPanel);
         frame.setJMenuBar(menuBar);
         frame.pack();
-        frame.setSize(800,600);
+        frame.setSize(800, 600);
         frame.setLocationByPlatform(true);
         frame.setVisible(true);
-
-       /* JFrame frame = new JFrame("Yahtzee");
-        frame.setDefaultCloseOperation(EXIT_ON_CLOSE);
-
-        //Set upo the Content pane
-        addComponentsToPane(frame.getContentPane());
-
-        //Display the window
-        frame.pack();
-        frame.setSize(640,480);
-        frame.setVisible(true);*/
     }
-    public static void main(String[] args){
+
+    public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
