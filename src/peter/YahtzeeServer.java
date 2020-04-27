@@ -22,7 +22,7 @@ public class YahtzeeServer implements Runnable {
 
     private LinkedBlockingQueue<String> clientMessageQueue;
 
-    private YahtzeeServer(Socket clientSocket, LinkedBlockingQueue<String> clientMessageQueue, CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessageQueues){
+    private YahtzeeServer(Socket clientSocket, LinkedBlockingQueue<String> clientMessageQueue, CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessageQueues) {
         this.clientSocket = clientSocket;
         this.clientMessageQueue = clientMessageQueue;
         YahtzeeServer.clientMessagesQueues = clientMessageQueues;
@@ -35,21 +35,21 @@ public class YahtzeeServer implements Runnable {
          */
         PrintWriter socketWriter = null;
         BufferedReader socketReader = null;
-        try{
-            socketWriter = new PrintWriter(clientSocket.getOutputStream(),true);
-            PrintWriter finalSocketWriter =socketWriter;
+        try {
+            socketWriter = new PrintWriter(clientSocket.getOutputStream(), true);
+            PrintWriter finalSocketWriter = socketWriter;
 
             new Thread(() -> {
                 String mess;
-                while (true){
-                    try{
+                while (true) {
+                    try {
                         /**
                          * wait for a new message to arrive in the clients messagequeue and the send it to the client
                          */
-                        mess = (String)clientMessageQueue.take();
+                        mess = (String) clientMessageQueue.take();
                         //Send the message to the client
                         finalSocketWriter.println(mess);
-                    }catch (InterruptedException e){
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
@@ -63,7 +63,7 @@ public class YahtzeeServer implements Runnable {
 
             //Om det är chatt
 
-            while (incommingMessage != null){
+            while (incommingMessage != null) {
                 //incommingMessage = socketReader.readLine();
                 String[] parts = incommingMessage.split("::");
                 String messageCode = parts[0];
@@ -80,6 +80,20 @@ public class YahtzeeServer implements Runnable {
                         break;
                     case "login":
                         //DO LOGIN
+                        databaseHandler.connectToDatabase();
+                        String[] loginUserParts = message.split(";;");
+                        Player player = databaseHandler.login(loginUserParts[0], loginUserParts[0]);
+                        //if(player != null){
+                            for(LinkedBlockingQueue que : clientMessagesQueues){
+                                if (que == clientMessageQueue){
+                                    if(player != null){
+                                        que.put("login_user::" + player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
+                                    }else{
+                                        que.put("login_user::" + "-1");
+                                    }
+                                }
+                            }
+                        //}
                         break;
                     case "new_user":
                         //DO NEW USER
@@ -87,40 +101,40 @@ public class YahtzeeServer implements Runnable {
                         //SPLIT MESSAGE
                         String[] newUserParts = message.split(";;");
                         int newDBID = databaseHandler.insertPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
-                        if(newDBID != 0) {
+                        if (newDBID != 0) {
                             for (LinkedBlockingQueue que : clientMessagesQueues) {
                                 if (que == clientMessageQueue) {
-                                    que.put("ok_user::" + newDBID);
+                                    que.put("new_user::" + newDBID);
                                 }
                             }
                         }
                         break;
                 }
                 Thread.sleep(100);
-                try{
+                try {
                     incommingMessage = socketReader.readLine();
-                }catch (SocketException e){
+                } catch (SocketException e) {
                     e.printStackTrace();
                     break;
                 }
-                System.out.println("Received:" + incommingMessage) ;
+                System.out.println("Received:" + incommingMessage);
             }
 
 
-        }catch (SocketException e){
+        } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             clientMessagesQueues.remove(clientMessageQueue);
         }
 
     }
 
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         System.out.println("Server started");
         /**
          * Creates Sockets for server and client connections
@@ -136,30 +150,30 @@ public class YahtzeeServer implements Runnable {
             CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessageQueues = new CopyOnWriteArrayList<>();
             LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
-        /**
-         * wait for incoming connections from clients and spawn a new thread for each client
-         * and waits for the next client to connect
-         */
-        while (true){
-            clientSocket = serverSocket.accept();
-            LinkedBlockingQueue<String> clientMessageQueue = new LinkedBlockingQueue<>();
-            clientMessageQueues.add(clientMessageQueue);
-            System.out.println("There is now: " + clientMessageQueues.size() + " players connected to the server.");
-            YahtzeeServer yahtzeeServer = new YahtzeeServer(clientSocket,clientMessageQueue,clientMessageQueues);
-            Thread thread = new Thread(yahtzeeServer);
-            thread.start();
-        }
+            /**
+             * wait for incoming connections from clients and spawn a new thread for each client
+             * and waits for the next client to connect
+             */
+            while (true) {
+                clientSocket = serverSocket.accept();
+                LinkedBlockingQueue<String> clientMessageQueue = new LinkedBlockingQueue<>();
+                clientMessageQueues.add(clientMessageQueue);
+                System.out.println("There is now: " + clientMessageQueues.size() + " players connected to the server.");
+                YahtzeeServer yahtzeeServer = new YahtzeeServer(clientSocket, clientMessageQueue, clientMessageQueues);
+                Thread thread = new Thread(yahtzeeServer);
+                thread.start();
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
-        }finally{
+        } finally {
 
-            try{
-                if(serverSocket!=null){
+            try {
+                if (serverSocket != null) {
                     serverSocket.close();
                 }
 
-            }catch (IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

@@ -1,6 +1,7 @@
 package peter;
 
 //import com.mysql.cj.Session;
+
 import javax.mail.Session;
 
 
@@ -13,7 +14,7 @@ public class Mailhandler {
     private String mailserverPassword;
     private String mailserver;
 
-    public Mailhandler(String server, String userName, String password){
+    public Mailhandler(String server, String userName, String password) {
         mailserver = server;
         mailServerUser = userName;
         mailserverPassword = password;

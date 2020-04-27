@@ -52,9 +52,12 @@ public class DatabaseHandler {
                 int newDbId = rs.getInt(1);
                 return newDbId;
             }
+        } catch (SQLIntegrityConstraintViolationException e) {
+            System.out.println("duplicate user");
+            return -1;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return 0;
+        return -1;
     }
 }

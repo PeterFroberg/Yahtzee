@@ -6,7 +6,7 @@ public class Player {
     private String email;
     private String password;
 
-    public Player(){
+    public Player() {
 
     }
 
