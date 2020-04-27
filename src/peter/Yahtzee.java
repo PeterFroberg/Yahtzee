@@ -1,14 +1,27 @@
 package peter;
 
 import javax.swing.*;
+import javax.swing.plaf.TableHeaderUI;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-public class Yahtzee extends JPanel {
+public class Yahtzee extends JPanel implements Runnable {
 
     private Player player = new Player();
+    private final static String DEFAULTHOST = "127.0.0.1";
+    private final static int DEFAULTPORT = 2000;
+
+    private final BufferedReader socketReader;
+    private final PrintWriter socketWriter;
 
     /**
      * Create a databasehandler to take care of database communication
@@ -16,6 +29,8 @@ public class Yahtzee extends JPanel {
     private DatabaseHandler databaseHandler = new DatabaseHandler();
 
     private static JMenuBar menuBar = new JMenuBar();
+
+    private static LinkedBlockingQueue<String> serverMessages = new LinkedBlockingQueue<String>();
 
     /**
      * Create GUI components for the application
@@ -29,8 +44,8 @@ public class Yahtzee extends JPanel {
     private JMenuItem menuItemExit = new JMenuItem("Exit");
 
     //Textareas
-    private JTextArea textAreaChatArea = new JTextArea("Detta är chat meddelanden");
-    private JTextArea textAreaScore = new JTextArea("");
+    private static JTextArea jTextAreaTextAreaChatArea = new JTextArea("Detta är chat meddelanden");
+    private JTextArea jTextAreaTextAreaScore = new JTextArea("");
     private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
 
     //TExtfields
@@ -57,7 +72,11 @@ public class Yahtzee extends JPanel {
     private JButton buttonRollAgain = new JButton("Roll dices");
     private JButton buttonSaveResult = new JButton("Save Result");
 
-    public Yahtzee() {
+    public Yahtzee(BufferedReader socketReader, PrintWriter socketWriter) {
+
+        this.socketReader = socketReader;
+        this.socketWriter = socketWriter;
+
 
         //Create Menu
         menuBar = createMenuBar();
@@ -68,6 +87,13 @@ public class Yahtzee extends JPanel {
         add(mainTopPanel(), BorderLayout.NORTH);
         add(mainRightPanel(), BorderLayout.EAST);
         add(mainCenterPanel(), BorderLayout.CENTER);
+    }
+
+    private void enableOptions(){
+        menuItemScoreBoard.setEnabled(true);
+        menuItemInvitePlayers.setEnabled(true);
+
+        buttonSendChat.setEnabled(true);
     }
 
     private void loginplayer(){
@@ -81,6 +107,7 @@ public class Yahtzee extends JPanel {
                 player = databaseHandler.login(jTextFieldLoginName.getText(), jTextFieldLoginPassword.getText());
                 if(player != null){
                     jTextFieldLoginPassword.setText("");
+                    enableOptions();
                     endLogin = true;
                 }
                 JOptionPane.showMessageDialog(this, "Unable to Login! Either User dont exist, wrong username or wrong password!");
@@ -91,7 +118,7 @@ public class Yahtzee extends JPanel {
         }
     }
 
-    private void createNewUser() {
+    private void createNewUser(PrintWriter socketWriter) {
         Boolean endUserInput = false;
         while (!endUserInput) {
             int buttonPressed = JOptionPane.showConfirmDialog(
@@ -99,21 +126,36 @@ public class Yahtzee extends JPanel {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                databaseHandler.connectToDatabase();
-                int newDBID = databaseHandler.insertPlayer(jTextFilednewUserInputName.getText(), jTextFieldnewUserInputEmail.getText(), newUserInputPassword.getText());
-                if (newDBID != 0) {
-                    player.setID(newDBID);
-                    player.setName(jTextFilednewUserInputName.getText());
-                    player.setEmail(jTextFieldnewUserInputEmail.getText());
-                    player.setPassword(newUserInputPassword.getText());
-                }else{
+                //databaseHandler.connectToDatabase();
+                //int newDBID = databaseHandler.insertPlayer(jTextFilednewUserInputName.getText(), jTextFieldnewUserInputEmail.getText(), newUserInputPassword.getText());
+                socketWriter.println("new_user::"+ jTextFilednewUserInputName.getText() + ";;" + jTextFieldnewUserInputEmail.getText() + ";;" + newUserInputPassword.getText());
+                while (player.getID()!=0){
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+                if (player.getID() == -1) {
+//                    player.setID(newDBID);
+//                    player.setName(jTextFilednewUserInputName.getText());
+//                    player.setEmail(jTextFieldnewUserInputEmail.getText());
+//                    player.setPassword(newUserInputPassword.getText());
+//                }else{
                     JOptionPane.showMessageDialog(this, "User already exists!, Use another email account");
                 }
-                menuItemInvitePlayers.setEnabled(true);
-                menuItemScoreBoard.setEnabled(true);
+                enableOptions();
+                //menuItemInvitePlayers.setEnabled(true);
+                //menuItemScoreBoard.setEnabled(true);
+                //buttonSendChat.setEnabled(true);
             }
             endUserInput = true;
         }
+    }
+
+    private void sendChattMessage(String message, PrintWriter socketWriter){
+        socketWriter.println("chatt::" + message);
     }
 
     private void invitePlayer(){
@@ -183,12 +225,19 @@ public class Yahtzee extends JPanel {
         mainRightPanel.add(rightMiddelPanel, BorderLayout.CENTER);
         mainRightPanel.add(rightBottomPanel, BorderLayout.SOUTH);
 
-        rightTopPanel.add(textAreaChatArea);
+        rightTopPanel.add(jTextAreaTextAreaChatArea);
 
         //Populate rightmiddel panel
         rightMiddelPanel.add(jTextAreaChatInput);
 
         //Populate rightbottom panel
+        buttonSendChat.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                sendChattMessage( player.getName()+ ": " + jTextAreaChatInput.getText(), socketWriter);
+            }
+        });
+        buttonSendChat.setEnabled(false);
         rightBottomPanel.add(buttonSendChat);
 
         mainRightPanel.setMinimumSize(new Dimension(180, 0));
@@ -271,7 +320,7 @@ public class Yahtzee extends JPanel {
         menuItemCreateNewPlayer.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                createNewUser();
+                createNewUser(socketWriter);
             }
         });
 
@@ -299,9 +348,33 @@ public class Yahtzee extends JPanel {
     }
 
     private static void createAndShowGUI() {
+        /**
+         * Creates connection to server
+         */
+        Socket socket = null;
+        PrintWriter socketWriter = null;
+        BufferedReader socketReader = null;
+        BufferedReader consoleReader = null;
 
-        Yahtzee mainPanel = new Yahtzee();
+        try {
+            socket = new Socket(DEFAULTHOST, DEFAULTPORT);
+            socketWriter = new PrintWriter(socket.getOutputStream(),true);
+            socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+        Yahtzee mainPanel = new Yahtzee(socketReader, socketWriter);
+
+        /**
+         * create a Receive thread
+         */
+        Thread receiveThread = new Thread(mainPanel);
+        receiveThread.start();
+
+        /**
+         * Display GUI
+         */
         JFrame frame = new JFrame("Peters online Yahtzee game!");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(mainPanel);
@@ -310,7 +383,9 @@ public class Yahtzee extends JPanel {
         frame.setSize(800, 600);
         frame.setLocationByPlatform(true);
         frame.setVisible(true);
+
     }
+
 
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -319,5 +394,43 @@ public class Yahtzee extends JPanel {
                 createAndShowGUI();
             }
         });
+    }
+
+    @Override
+    public void run() {
+        try{
+            /**
+             * Keeps the receiver alive
+             */
+            while (true){
+                if(socketReader.ready()){
+                    String incommingMessage = socketReader.readLine();
+                    String[] parts = incommingMessage.split("::");
+                    String messageCode = parts[0];
+                    String message = parts[1];
+                    //GÖR OM TILL CASE/SWITCH
+                    switch (messageCode){
+                        case "chatt":
+                            jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + message);
+                            break;
+                        case "ok_user":
+                            String[] okUserParts = message.split(";;");
+                            if(!okUserParts[0].equals("-1")){
+                                player.setID(Integer.valueOf(okUserParts[0]));
+                                player.setName(jTextFilednewUserInputName.getText());
+                                player.setEmail(jTextFieldnewUserInputEmail.getText());
+                            }
+
+                    }
+
+                }
+                Thread.sleep(100);
+            }
+        }catch (InterruptedException e){
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
     }
 }

@@ -1,7 +1,7 @@
 package peter;
 
 public class Player {
-    private int ID;
+    private int ID = 0;
     private String name;
     private String email;
     private String password;

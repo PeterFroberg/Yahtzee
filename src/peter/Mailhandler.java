@@ -1,6 +1,8 @@
 package peter;
 
-import com.mysql.cj.Session;
+//import com.mysql.cj.Session;
+import javax.mail.Session;
+
 
 import java.util.Properties;
 

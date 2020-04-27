@@ -6,20 +6,19 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class YahtzeeServer implements Runnable {
 
+    private DatabaseHandler databaseHandler = new DatabaseHandler();
+
     private final static int DEFAULTPORT = 2000;
     private static CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessagesQueues;
 
     private final static Object Lock = new Object();
-
     private final Socket clientSocket;
-
 
     private LinkedBlockingQueue<String> clientMessageQueue;
 
@@ -57,27 +56,54 @@ public class YahtzeeServer implements Runnable {
             }).start();
             socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            String inputLine = socketReader.readLine();
+            String incommingMessage = socketReader.readLine();
+            System.out.println(incommingMessage);
 
-            ////Kontrolera vilket typ av meddelande och hantera det
+            ////Kontrollera vilket typ av meddelande och hantera det
 
             //Om det är chatt
 
-            while (inputLine != null){
-                synchronized (Lock){
-                    for(LinkedBlockingQueue que : clientMessagesQueues){
-                        if(que != clientMessageQueue){
-                            que.put("PlayerName: " + inputLine);
+            while (incommingMessage != null){
+                //incommingMessage = socketReader.readLine();
+                String[] parts = incommingMessage.split("::");
+                String messageCode = parts[0];
+                String message = parts[1];
+                switch (messageCode) {
+                    case "chatt":
+                        synchronized (Lock) {
+                            for (LinkedBlockingQueue que : clientMessagesQueues) {
+                                //if(que != clientMessageQueue){
+                                que.put(incommingMessage);
+                                //}
+                            }
                         }
-                    }
+                        break;
+                    case "login":
+                        //DO LOGIN
+                        break;
+                    case "new_user":
+                        //DO NEW USER
+                        databaseHandler.connectToDatabase();
+                        //SPLIT MESSAGE
+                        String[] newUserParts = message.split(";;");
+                        int newDBID = databaseHandler.insertPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
+                        if(newDBID != 0) {
+                            for (LinkedBlockingQueue que : clientMessagesQueues) {
+                                if (que == clientMessageQueue) {
+                                    que.put("ok_user::" + newDBID);
+                                }
+                            }
+                        }
+                        break;
                 }
                 Thread.sleep(100);
                 try{
-                    inputLine = socketReader.readLine();
+                    incommingMessage = socketReader.readLine();
                 }catch (SocketException e){
                     e.printStackTrace();
                     break;
                 }
+                System.out.println("Received:" + incommingMessage) ;
             }
 
 
@@ -91,10 +117,10 @@ public class YahtzeeServer implements Runnable {
             clientMessagesQueues.remove(clientMessageQueue);
         }
 
-
     }
+
+
     public static void main(String[] args){
-        int port;
         System.out.println("Server started");
         /**
          * Creates Sockets for server and client connections
@@ -118,7 +144,7 @@ public class YahtzeeServer implements Runnable {
             clientSocket = serverSocket.accept();
             LinkedBlockingQueue<String> clientMessageQueue = new LinkedBlockingQueue<>();
             clientMessageQueues.add(clientMessageQueue);
-
+            System.out.println("There is now: " + clientMessageQueues.size() + " players connected to the server.");
             YahtzeeServer yahtzeeServer = new YahtzeeServer(clientSocket,clientMessageQueue,clientMessageQueues);
             Thread thread = new Thread(yahtzeeServer);
             thread.start();
