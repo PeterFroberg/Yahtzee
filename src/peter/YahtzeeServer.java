@@ -98,7 +98,6 @@ public class YahtzeeServer implements Runnable {
                     case "new_user":
                         //DO NEW USER
                         databaseHandler.connectToDatabase();
-                        //SPLIT MESSAGE
                         String[] newUserParts = message.split(";;");
                         int newDBID = databaseHandler.insertPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
                         if (newDBID != 0) {

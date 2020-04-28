@@ -1,7 +1,6 @@
 package peter;
 
 import javax.swing.*;
-import javax.swing.plaf.TableHeaderUI;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -89,6 +88,10 @@ public class Yahtzee extends JPanel implements Runnable {
         add(mainCenterPanel(), BorderLayout.CENTER);
     }
 
+    /**
+     * Enables/disabels swing components
+     * @param value - true/false
+     */
     private void enableOptions(boolean value) {
         menuItemScoreBoard.setEnabled(value);
         menuItemInvitePlayers.setEnabled(value);
@@ -96,6 +99,9 @@ public class Yahtzee extends JPanel implements Runnable {
         buttonSendChat.setEnabled(value);
     }
 
+    /**
+     * Login player on the server, shows a dialogbox for signing in
+     */
     private void loginplayer() {
         boolean endLogin = false;
         while (!endLogin) {
@@ -108,7 +114,7 @@ public class Yahtzee extends JPanel implements Runnable {
                 player.setEmail("");
                 setEnabled(false);
 
-                socketWriter.println("login::" + jTextFieldLoginName.getText() + ";;" + jTextFieldLoginPassword.getText());
+                sendMessage("login::" + jTextFieldLoginName.getText() + ";;" + jTextFieldLoginPassword.getText());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -132,6 +138,12 @@ public class Yahtzee extends JPanel implements Runnable {
         }
     }
 
+    /**
+     * Method to create a new user, send a message to the server to create the user
+     * When the message is sent the the while loops waits until the player ID i set to other than
+     * zero. If player ID is set to -1 the user already exits in the database
+     * @param socketWriter - which Socketwriter to use for sending the message
+     */
     private void createNewUser(PrintWriter socketWriter) {
         boolean endUserInput = false;
         while (!endUserInput) {
@@ -140,7 +152,7 @@ public class Yahtzee extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                socketWriter.println("new_user::" + jTextFilednewUserInputName.getText() + ";;" + jTextFieldnewUserInputEmail.getText() + ";;" + newUserInputPassword.getText());
+                sendMessage("new_user::" + jTextFilednewUserInputName.getText() + ";;" + jTextFieldnewUserInputEmail.getText() + ";;" + newUserInputPassword.getText());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -158,7 +170,11 @@ public class Yahtzee extends JPanel implements Runnable {
         }
     }
 
-    private void sendChattMessage(String message, PrintWriter socketWriter) {
+    /**
+     * Send message to the game server
+     * @param message - message to be sent
+     */
+    private void sendMessage(String message) {
         socketWriter.println("chatt::" + message);
     }
 
@@ -166,6 +182,10 @@ public class Yahtzee extends JPanel implements Runnable {
 
     }
 
+    /**
+     * creates the top panel and populates it with swing components
+     * @return - returns the created JPanel
+     */
     private JPanel mainTopPanel() {
         JPanel mainTopPanel = new JPanel(new GridLayout(2, 6));
         mainTopPanel.add(new JLabel("Dices"));
@@ -212,6 +232,10 @@ public class Yahtzee extends JPanel implements Runnable {
         return mainTopPanel;
     }
 
+    /**
+     * creates the center panel and populates it with swing components
+     * @return - returns the created JPanel
+     */
     private JPanel mainCenterPanel() {
         JPanel mainCenterPanel = new JPanel(new BorderLayout());
         mainCenterPanel.setBorder(BorderFactory.createLineBorder(Color.green));
@@ -219,6 +243,10 @@ public class Yahtzee extends JPanel implements Runnable {
         return mainCenterPanel;
     }
 
+    /**
+     * creates the right panel and populates it with swing components
+     * @return - returns the created JPanel
+     */
     private JPanel mainRightPanel() {
         JPanel rightTopPanel = new JPanel(new BorderLayout());
         JPanel rightMiddelPanel = new JPanel(new BorderLayout());
@@ -240,7 +268,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
         //Populate rightbottom panel
         buttonSendChat.addActionListener(actionEvent ->
-                sendChattMessage(player.getName() + ": " + jTextAreaChatInput.getText(), socketWriter));
+                sendMessage(player.getName() + ": " + jTextAreaChatInput.getText()));
         buttonSendChat.setEnabled(false);
         rightBottomPanel.add(buttonSendChat);
 
@@ -262,6 +290,10 @@ public class Yahtzee extends JPanel implements Runnable {
         return mainRightPanel;
     }
 
+    /**
+     * creates the Login panel and populates it with swing components
+     * @return - returns the created JPanel
+     */
     private JPanel loginPanel() {
         JPanel loginPanel = new JPanel();
 
@@ -283,6 +315,10 @@ public class Yahtzee extends JPanel implements Runnable {
         return loginPanel;
     }
 
+    /**
+     * creates the New user panel and populates it with swing components
+     * @return - returns the created JPanel
+     */
     private JPanel newUserPanel() {
         JPanel newUserPanel = new JPanel();
 
@@ -302,6 +338,10 @@ public class Yahtzee extends JPanel implements Runnable {
         return newUserPanel;
     }
 
+    /**
+     * creates the menubar and populates it with swing components
+     * @return - returns the created menubar
+     */
     private JMenuBar createMenuBar() {
         menuBar = new JMenuBar();
         JMenu menu = new JMenu("Play");
@@ -351,6 +391,9 @@ public class Yahtzee extends JPanel implements Runnable {
         return menuBar;
     }
 
+    /**
+     * Setup communication with the server, Starts the GUI
+     */
     private static void createAndShowGUI() {
         /**
          * Creates connection to server
@@ -365,6 +408,7 @@ public class Yahtzee extends JPanel implements Runnable {
             socketWriter = new PrintWriter(socket.getOutputStream(), true);
             socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Unable to connect to game server, please try again later");
             e.printStackTrace();
         }
 
