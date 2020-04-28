@@ -2,8 +2,6 @@ package peter;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
@@ -17,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class Yahtzee extends JPanel implements Runnable {
 
     private Player player = new Player();
+    private Game game = new Game();
     private final static String DEFAULTHOST = "127.0.0.1";
     private final static int DEFAULTPORT = 2000;
 
@@ -40,6 +39,7 @@ public class Yahtzee extends JPanel implements Runnable {
     private JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
     private JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
     private JMenuItem menuItemLogin = new JMenuItem("Login");
+    private JMenuItem menuItemJoinGame = new JMenuItem("Join game");
     private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
     private JMenuItem menuItemExit = new JMenuItem("Exit");
 
@@ -66,6 +66,10 @@ public class Yahtzee extends JPanel implements Runnable {
 
     private JTextField jTextFieldLoginName = new JTextField(45);
     private JTextField jTextFieldLoginPassword = new JPasswordField(45);
+
+    private JTextField jTextFieldInvitePlayers = new JTextField(45);
+
+    private JTextField jTextFieldJoinGame = new JTextField(15);
 
     //Buttons
     private JButton buttonSendChat = new JButton("Send");
@@ -95,6 +99,7 @@ public class Yahtzee extends JPanel implements Runnable {
     private void enableOptions(boolean value) {
         menuItemScoreBoard.setEnabled(value);
         menuItemInvitePlayers.setEnabled(value);
+        menuItemJoinGame.setEnabled(value);
 
         buttonSendChat.setEnabled(value);
     }
@@ -142,9 +147,8 @@ public class Yahtzee extends JPanel implements Runnable {
      * Method to create a new user, send a message to the server to create the user
      * When the message is sent the the while loops waits until the player ID i set to other than
      * zero. If player ID is set to -1 the user already exits in the database
-     * @param socketWriter - which Socketwriter to use for sending the message
      */
-    private void createNewUser(PrintWriter socketWriter) {
+    private void createNewUser() {
         boolean endUserInput = false;
         while (!endUserInput) {
             int buttonPressed = JOptionPane.showConfirmDialog(
@@ -175,10 +179,35 @@ public class Yahtzee extends JPanel implements Runnable {
      * @param message - message to be sent
      */
     private void sendMessage(String message) {
-        socketWriter.println("chatt::" + message);
+        socketWriter.println(message);
     }
 
     private void invitePlayer() {
+        boolean endInviteInput = false;
+        while (!endInviteInput) {
+            int buttonPressed = JOptionPane.showConfirmDialog(
+                    null, invitePlayerPanel(), "Invite players: "
+                    , JOptionPane.OK_CANCEL_OPTION
+                    , JOptionPane.PLAIN_MESSAGE);
+            if(buttonPressed == JOptionPane.OK_OPTION){
+                sendMessage("invite_players::" + player.getEmail() + ";" + jTextFieldInvitePlayers.getText());
+            }
+            endInviteInput = true;
+        }
+    }
+
+    private void joinGame(){
+        boolean endJoinGame = false;
+        while (!endJoinGame) {
+            int buttonPressed = JOptionPane.showConfirmDialog(
+                    null, joinGamePanel(), "Join Game: "
+                    , JOptionPane.OK_CANCEL_OPTION
+                    , JOptionPane.PLAIN_MESSAGE);
+            if(buttonPressed == JOptionPane.OK_OPTION){
+                sendMessage("join_game::" + player.getEmail() + ";" + jTextFieldJoinGame);
+            }
+            endJoinGame = true;
+        }
 
     }
 
@@ -209,6 +238,7 @@ public class Yahtzee extends JPanel implements Runnable {
         jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
         mainTopPanel.add(jTextFieldDiceResult5);
 
+        buttonRollAgain.setEnabled(false);
         mainTopPanel.add(buttonRollAgain);
 
         mainTopPanel.add(new JLabel("Save this dice:"));
@@ -227,6 +257,7 @@ public class Yahtzee extends JPanel implements Runnable {
         mainTopPanel.setPreferredSize(mainTopPanel.getMinimumSize());
         mainTopPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
 
+        buttonSaveResult.setEnabled(false);
         mainTopPanel.add(buttonSaveResult);
 
         return mainTopPanel;
@@ -268,7 +299,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
         //Populate rightbottom panel
         buttonSendChat.addActionListener(actionEvent ->
-                sendMessage(player.getName() + ": " + jTextAreaChatInput.getText()));
+                sendMessage("chatt::" + player.getName() + ": " + jTextAreaChatInput.getText()));
         buttonSendChat.setEnabled(false);
         rightBottomPanel.add(buttonSendChat);
 
@@ -338,6 +369,43 @@ public class Yahtzee extends JPanel implements Runnable {
         return newUserPanel;
     }
 
+    private JPanel invitePlayerPanel(){
+        JPanel invitePanel = new JPanel();
+
+        JPanel leftInvitePanel = new JPanel();
+        leftInvitePanel.setLayout(new GridLayout(2,2,5,5));
+        leftInvitePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftInvitePanel.add(new JLabel("Invite players"));
+
+        JPanel centerInvitePanel = new JPanel();
+        centerInvitePanel.setLayout(new GridLayout(2,2,5,5));
+        centerInvitePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerInvitePanel.add(jTextFieldInvitePlayers);
+
+        invitePanel.add(leftInvitePanel);
+        invitePanel.add(centerInvitePanel);
+
+        return invitePanel;
+    }
+
+    private JPanel joinGamePanel(){
+        JPanel joinGamePanel = new JPanel();
+        JPanel leftJoinGamePanel = new JPanel();
+        leftJoinGamePanel.setLayout(new GridLayout(2,2,5,5));
+        leftJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftJoinGamePanel.add(new JLabel("Join game: "));
+
+        JPanel centerJoinGamePanel = new JPanel();
+        centerJoinGamePanel.setLayout(new GridLayout(2,2,5,5));
+        centerJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerJoinGamePanel.add(jTextFieldJoinGame);
+
+        joinGamePanel.add(leftJoinGamePanel);
+        joinGamePanel.add(centerJoinGamePanel);
+
+        return joinGamePanel;
+    }
+
     /**
      * creates the menubar and populates it with swing components
      * @return - returns the created menubar
@@ -349,42 +417,53 @@ public class Yahtzee extends JPanel implements Runnable {
         menuBar.add(menu);
 
         menuItemCreateNewPlayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.ALT_DOWN_MASK));
+        menuItemCreateNewPlayer.addActionListener(actionEvent -> createNewUser());
 
         menuItemLogin.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.ALT_DOWN_MASK));
+        menuItemLogin.addActionListener(actionEvent -> loginplayer());
 
         menuItemInvitePlayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
         menuItemInvitePlayers.setEnabled(false);
+        menuItemInvitePlayers.addActionListener(actionEvent -> invitePlayer());
+
+        menuItemJoinGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_J, InputEvent.ALT_DOWN_MASK));
+        menuItemJoinGame.setEnabled(false);
+        menuItemJoinGame.addActionListener(actionEvent -> joinGame());
 
         menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK)));
         menuItemScoreBoard.setEnabled(false);
 
         menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)));
+        menuItemExit.addActionListener(actionEvent -> System.exit(0));
 
         //Set action Listeners to menu items
-        menuItemCreateNewPlayer.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                createNewUser(socketWriter);
-            }
-        });
 
-        menuItemLogin.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                loginplayer();
-            }
-        });
 
-        menuItemExit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                System.exit(0);
-            }
-        });
+//        menuItemCreateNewPlayer.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                createNewUser(socketWriter);
+//            }
+//        });
+
+//        menuItemLogin.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                loginplayer();
+//            }
+//        });
+
+//        menuItemExit.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                System.exit(0);
+//            }
+//        });
 
         menu.add(menuItemCreateNewPlayer);
         menu.add(menuItemLogin);
         menu.add(menuItemInvitePlayers);
+        menu.add(menuItemJoinGame);
         menu.add(menuItemScoreBoard);
         menu.add(menuItemExit);
 
@@ -478,6 +557,11 @@ public class Yahtzee extends JPanel implements Runnable {
                             }else{
                                 player.setID(-1);
                             }
+                            break;
+                        case "invitations":
+                            JOptionPane.showMessageDialog(this, message);
+
+
                             break;
                     }
                 }

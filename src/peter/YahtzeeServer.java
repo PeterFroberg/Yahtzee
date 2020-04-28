@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class YahtzeeServer implements Runnable {
 
     private DatabaseHandler databaseHandler = new DatabaseHandler();
+    private Mailhandler mailhandler = new Mailhandler(System.getenv("mailServer"), System.getenv("mailUserName"), System.getenv("mailPassword"));
 
     private final static int DEFAULTPORT = 2000;
     private static CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessagesQueues;
@@ -59,10 +60,6 @@ public class YahtzeeServer implements Runnable {
             String incommingMessage = socketReader.readLine();
             System.out.println(incommingMessage);
 
-            ////Kontrollera vilket typ av meddelande och hantera det
-
-            //Om det är chatt
-
             while (incommingMessage != null) {
                 //incommingMessage = socketReader.readLine();
                 String[] parts = incommingMessage.split("::");
@@ -70,13 +67,7 @@ public class YahtzeeServer implements Runnable {
                 String message = parts[1];
                 switch (messageCode) {
                     case "chatt":
-                        synchronized (Lock) {
-                            for (LinkedBlockingQueue que : clientMessagesQueues) {
-                                //if(que != clientMessageQueue){
-                                que.put(incommingMessage);
-                                //}
-                            }
-                        }
+                        sendToInGamePlayers("chatt::", message);
                         break;
                     case "login":
                         //DO LOGIN
@@ -84,29 +75,42 @@ public class YahtzeeServer implements Runnable {
                         String[] loginUserParts = message.split(";;");
                         Player player = databaseHandler.login(loginUserParts[0], loginUserParts[0]);
                         //if(player != null){
-                            for(LinkedBlockingQueue que : clientMessagesQueues){
-                                if (que == clientMessageQueue){
-                                    if(player != null){
-                                        que.put("login_user::" + player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
-                                    }else{
-                                        que.put("login_user::" + "-1");
-                                    }
+                        for (LinkedBlockingQueue que : clientMessagesQueues) {
+                            if (que == clientMessageQueue) {
+                                if (player != null) {
+                                    que.put("login_user::" + player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
+                                } else {
+                                    que.put("login_user::" + "-1");
                                 }
                             }
+                        }
                         //}
                         break;
                     case "new_user":
                         //DO NEW USER
                         databaseHandler.connectToDatabase();
                         String[] newUserParts = message.split(";;");
-                        int newDBID = databaseHandler.insertPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
+                        int newDBID = databaseHandler.CreateNewPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
                         if (newDBID != 0) {
-                            for (LinkedBlockingQueue que : clientMessagesQueues) {
-                                if (que == clientMessageQueue) {
-                                    que.put("new_user::" + newDBID);
-                                }
-                            }
+                            sendToMyMessageQueue("new_user::", String.valueOf(newDBID));
                         }
+                        break;
+                    case "invite_players":
+                        databaseHandler.connectToDatabase();
+                        String[] invitedPlayersParts = message.split(";");
+                        String[] players = invitedPlayersParts[1].split(";");
+                        int newGameID = databaseHandler.invitePlayers(invitedPlayersParts[0], players);
+                        String body = "You are invited for a game of Yahtzee by " + invitedPlayersParts[0] + "\n Start the yahtzee program and use the \"join game\" option and input the game# " + String.valueOf(newGameID) +" in the play menu to join";
+                        String result = "";
+                        for (String playerToInvite : players) {
+                            result = mailhandler.send(playerToInvite, "testarepostkurs@gmail.com", "Yahtzee invitation", body);
+                        }
+                        sendToMyMessageQueue("invitations::", result);
+                        break;
+                    case "join_game":
+                        databaseHandler.connectToDatabase();
+                        String[] joinGameParts = message.split(";");
+
                         break;
                 }
                 Thread.sleep(100);
@@ -132,6 +136,43 @@ public class YahtzeeServer implements Runnable {
 
     }
 
+    /**
+     * Sends message to all players in the same game
+     *
+     * @param messageCode - messageCode to use for the message
+     * @param message     - message to be sent, excluding the messagecode
+     */
+    private void sendToInGamePlayers(String messageCode, String message) {
+        for (LinkedBlockingQueue que : clientMessagesQueues) {
+            try {
+                synchronized (Lock) {
+                    que.put(messageCode + message);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Sends message to the communiting clients own queue
+     *
+     * @param messageCode - messageCode to use for the message
+     * @param message     - message to be sent, excluding the messagecode
+     */
+    private void sendToMyMessageQueue(String messageCode, String message) {
+        for (LinkedBlockingQueue que : clientMessagesQueues) {
+            if (que == clientMessageQueue) {
+                try {
+                    synchronized (Lock) {
+                        que.put(messageCode + message);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     public static void main(String[] args) {
         System.out.println("Server started");
