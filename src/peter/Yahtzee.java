@@ -9,13 +9,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class Yahtzee extends JPanel implements Runnable {
 
+    private static final String[] LABELS = {"Aeces: ", "Twos: ", "Threes: ", "Fours: ", "Fives: ", "Sixes: ", "Total score: ", "Bonus 1: ", "Total 1: ",
+            "3 of a kind: ", "4 of a kind: ", "Full house: ", "Sm Straight: ", "Lg Straight: ", "YAHTZEE: ", "Chance: ", "Yahtzee Bonus: ",
+            "Total 2: ", "Total 3: ", "Grand Total: "};
+
     private Player player = new Player();
     private Game game = new Game();
+    private Map<String, JTextField> scoreBoardMap = new HashMap<String, JTextField>();
+
     private final static String DEFAULTHOST = "127.0.0.1";
     private final static int DEFAULTPORT = 2000;
 
@@ -89,7 +97,8 @@ public class Yahtzee extends JPanel implements Runnable {
         //Add panels to the frame
         add(mainTopPanel(), BorderLayout.NORTH);
         add(mainRightPanel(), BorderLayout.EAST);
-        add(mainCenterPanel(), BorderLayout.CENTER);
+        //add(mainCenterPanel(), BorderLayout.CENTER);
+        add(scoreBoardPanel(),BorderLayout.CENTER);
     }
 
     /**
@@ -190,7 +199,7 @@ public class Yahtzee extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if(buttonPressed == JOptionPane.OK_OPTION){
-                sendMessage("invite_players::" + player.getEmail() + ";" + jTextFieldInvitePlayers.getText());
+                sendMessage("invite_players::" + player.getEmail() + ";" + player.getID() + ";" + jTextFieldInvitePlayers.getText());
             }
             endInviteInput = true;
         }
@@ -204,7 +213,7 @@ public class Yahtzee extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if(buttonPressed == JOptionPane.OK_OPTION){
-                sendMessage("join_game::" + player.getEmail() + ";" + jTextFieldJoinGame);
+                sendMessage("join_game::" + player.getID() + ";" + player.getEmail() + ";" + jTextFieldJoinGame.getText());
             }
             endJoinGame = true;
         }
@@ -337,6 +346,7 @@ public class Yahtzee extends JPanel implements Runnable {
         JPanel centerLoginPanel = new JPanel();
         centerLoginPanel.setLayout(new GridLayout(3, 2, 5, 5));
         centerLoginPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        jTextFieldLoginName.addAncestorListener(new RequestFocusListener());
         centerLoginPanel.add(jTextFieldLoginName);
         centerLoginPanel.add(jTextFieldLoginPassword);
 
@@ -358,6 +368,7 @@ public class Yahtzee extends JPanel implements Runnable {
         centerUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         centerUserPanel.add(new JLabel("Namn: "));
+        jTextFilednewUserInputName.addAncestorListener(new RequestFocusListener());
         centerUserPanel.add(jTextFilednewUserInputName);
         centerUserPanel.add(new JLabel("Email: "));
         centerUserPanel.add(jTextFieldnewUserInputEmail);
@@ -380,6 +391,7 @@ public class Yahtzee extends JPanel implements Runnable {
         JPanel centerInvitePanel = new JPanel();
         centerInvitePanel.setLayout(new GridLayout(2,2,5,5));
         centerInvitePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        jTextFieldInvitePlayers.addAncestorListener(new RequestFocusListener());
         centerInvitePanel.add(jTextFieldInvitePlayers);
 
         invitePanel.add(leftInvitePanel);
@@ -398,12 +410,70 @@ public class Yahtzee extends JPanel implements Runnable {
         JPanel centerJoinGamePanel = new JPanel();
         centerJoinGamePanel.setLayout(new GridLayout(2,2,5,5));
         centerJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        jTextFieldJoinGame.addAncestorListener(new RequestFocusListener());
         centerJoinGamePanel.add(jTextFieldJoinGame);
 
         joinGamePanel.add(leftJoinGamePanel);
         joinGamePanel.add(centerJoinGamePanel);
 
         return joinGamePanel;
+    }
+
+    private JPanel scoreBoardPanel(){
+
+
+        //Create and populate the panel.
+        JPanel scoreBoardPanel = new JPanel(new SpringLayout());
+
+        JLabel h = new JLabel("Player: ", JLabel.CENTER);
+        JLabel h1 = new JLabel("You", JLabel.CENTER);
+        JLabel h2 = new JLabel("P 2", JLabel.CENTER);
+        JLabel h3 = new JLabel("P 3", JLabel.CENTER);
+        JLabel h4 = new JLabel("P 4", JLabel.CENTER);
+
+        scoreBoardPanel.add(h);
+        scoreBoardPanel.add(h1);
+        scoreBoardPanel.add(h2);
+        scoreBoardPanel.add(h3);
+        scoreBoardPanel.add(h4);
+
+        for (int i = 0; i < LABELS.length; i++){
+            JLabel l = new JLabel(LABELS[i], JLabel.CENTER);
+            scoreBoardPanel.add(l);
+
+            JTextField textField = new JTextField();
+            textField.setHorizontalAlignment(SwingConstants.CENTER);
+            textField.setBackground(Color.white);
+            textField.setEditable(false);
+            scoreBoardMap.put("P1" + LABELS[i], textField);
+
+            JTextField textField1 = new JTextField();
+            textField1.setHorizontalAlignment(SwingConstants.CENTER);
+            textField1.setEditable(false);
+            scoreBoardMap.put("P2" + LABELS[i], textField1);
+
+            JTextField textField2 = new JTextField();
+            textField2.setHorizontalAlignment(SwingConstants.CENTER);
+            textField2.setEditable(false);
+            scoreBoardMap.put("P3" + LABELS[i], textField2);
+
+            JTextField textField3 = new JTextField();
+            textField3.setHorizontalAlignment(SwingConstants.CENTER);
+            textField3.setEditable(false);
+            scoreBoardMap.put("P3" + LABELS[i], textField3);
+
+
+            scoreBoardPanel.add(textField);
+            scoreBoardPanel.add(textField1);
+            scoreBoardPanel.add(textField2);
+            scoreBoardPanel.add(textField3);
+
+        }
+        SpringUtilities.makeGrid(scoreBoardPanel, LABELS.length + 1 ,5,6,6,6,6);
+
+
+
+        return scoreBoardPanel;
     }
 
     /**
@@ -435,30 +505,6 @@ public class Yahtzee extends JPanel implements Runnable {
 
         menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)));
         menuItemExit.addActionListener(actionEvent -> System.exit(0));
-
-        //Set action Listeners to menu items
-
-
-//        menuItemCreateNewPlayer.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                createNewUser(socketWriter);
-//            }
-//        });
-
-//        menuItemLogin.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                loginplayer();
-//            }
-//        });
-
-//        menuItemExit.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                System.exit(0);
-//            }
-//        });
 
         menu.add(menuItemCreateNewPlayer);
         menu.add(menuItemLogin);
@@ -507,7 +553,7 @@ public class Yahtzee extends JPanel implements Runnable {
         frame.getContentPane().add(mainPanel);
         frame.setJMenuBar(menuBar);
         frame.pack();
-        frame.setSize(800, 600);
+        frame.setSize(800, 700);
         frame.setLocationByPlatform(true);
         frame.setVisible(true);
     }
@@ -559,9 +605,15 @@ public class Yahtzee extends JPanel implements Runnable {
                             }
                             break;
                         case "invitations":
+                            //JOptionPane.showMessageDialog(this, message);
+                            //break;
+                        case "player_added_to_game":
                             JOptionPane.showMessageDialog(this, message);
-
-
+//                            if(message.equals("true")){
+//                                JOptionPane.showMessageDialog(this, "You have joined game! The game will start as soon as all players have joined");
+//                            }else {
+//                                JOptionPane.showMessageDialog(this, "Unable to join the game! Please check the game ID in your invitation");
+//                            }
                             break;
                     }
                 }
