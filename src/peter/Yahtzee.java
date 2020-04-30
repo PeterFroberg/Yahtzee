@@ -576,6 +576,7 @@ public class Yahtzee extends JPanel implements Runnable {
             while (true) {
                 if (socketReader.ready()) {
                     String incommingMessage = socketReader.readLine();
+                    System.out.println("Received: " + incommingMessage);
                     String[] parts = incommingMessage.split("::");
                     String messageCode = parts[0];
                     String message = parts[1];
@@ -614,6 +615,9 @@ public class Yahtzee extends JPanel implements Runnable {
 //                            }else {
 //                                JOptionPane.showMessageDialog(this, "Unable to join the game! Please check the game ID in your invitation");
 //                            }
+                            break;
+                        case "game_started":
+                            JOptionPane.showMessageDialog(this, message);
                             break;
                     }
                 }

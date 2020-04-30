@@ -67,12 +67,7 @@ public class YahtzeeServer implements Runnable {
             /**
              * create a Thread to check for when to start game
              */
-            new Thread(() ->{
-                while(!databaseHandler.startGame){
 
-                }
-
-            });
 
 
             socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -105,7 +100,7 @@ public class YahtzeeServer implements Runnable {
                                 }
                             }
                         }
-                        databaseHandler.disconnectDatabase();
+                        //databaseHandler.disconnectDatabase();
                         break;
                     case "new_user":
                         //DO NEW USER
@@ -115,7 +110,7 @@ public class YahtzeeServer implements Runnable {
                         if (newDBID != 0) {
                             sendToMyMessageQueue("new_user::", String.valueOf(newDBID));
                         }
-                        databaseHandler.disconnectDatabase();
+                        //databaseHandler.disconnectDatabase();
                         break;
                     case "invite_players":
                         databaseHandler.connectToDatabase();
@@ -130,7 +125,7 @@ public class YahtzeeServer implements Runnable {
                         sendToMyMessageQueue("invitations::", result);
                         databaseHandler.addPlayerToGame(newGameID, Integer.parseInt(invitedPlayersParts[1]));
                         createCommnunicationForGame(newGameID, clientMessageQueue);
-                        databaseHandler.disconnectDatabase();
+
                         break;
                     case "join_game":
                         databaseHandler.connectToDatabase();
@@ -142,7 +137,8 @@ public class YahtzeeServer implements Runnable {
                         String playerAdded = databaseHandler.joinGame(playerID,playerEmail,gameID);
                         sendToMyMessageQueue("player_added_to_game::", playerAdded);
                         joinCommunicationForGame(Integer.parseInt(joinGameParts[2]), clientMessageQueue);
-                        databaseHandler.disconnectDatabase();
+                        checkGameStarted(gameID);
+                        //databaseHandler.disconnectDatabase();
                         break;
                 }
                 Thread.sleep(100);
@@ -182,11 +178,21 @@ public class YahtzeeServer implements Runnable {
         messagingQueueArrayToJoin.add(clientMessageQueue);
     }
 
-    private boolean startGame(){
-        new Thread(() ->{
-            startGame()
+    private void checkGameStarted(int gameID){
 
-        });
+        new Thread(() ->{
+            boolean started = false;
+            while(!started){
+                started = databaseHandler.checkGameStarted(gameID);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            sendToMyMessageQueue("game_started::", "Game is started, Please wait for your turn");
+            //databaseHandler.disconnectDatabase();
+        }).start();
     }
     /**
      * Sends message to all players in the same game

@@ -147,6 +147,22 @@ public class DatabaseHandler {
         return playerAdded;
     }
 
+    public boolean checkGameStarted(int gameId){
+        try {
+            sqlStatement = dbConnection.prepareStatement("SELECT * FROM games WHERE ID = ?");
+            sqlStatement.setInt(1, gameId);
+            ResultSet resultSet= sqlStatement.executeQuery();
+            if(resultSet.next()){
+                if(resultSet.getString("gameState").equals("start") || resultSet.getString("gameState").equals("playing")){
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     /**
      * creates a new game in the DB
      *
@@ -188,6 +204,8 @@ public class DatabaseHandler {
             sqlStatement = dbConnection.prepareStatement("INSERT INTO playinggame (playerID, positionInGame, gameId) VALUES(?,?,?)");
             sqlStatement.setInt(1, playerID);
             sqlStatement.setInt(2, max_position + 1);
+            sqlStatement.setInt(3, gameID);
+            sqlStatement.executeUpdate();
             if (expectedNumberOfPlayersInGame - max_position == 1) {
                 //sqlStatement.setString(3, "start");
                 setGameState(gameID, "start");
@@ -197,9 +215,7 @@ public class DatabaseHandler {
                 setGameState(gameID, "waiting for players");
                 allPlayersConnected = "You are added to the game, please wait for more players to connect.";
             }
-            sqlStatement.setInt(3, gameID);
 
-            sqlStatement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
             allPlayersConnected = "Unable to add you to the game!";
@@ -229,7 +245,7 @@ public class DatabaseHandler {
 
     private void setGameState(int gameID, String newGameState){
         try {
-            sqlStatement = dbConnection.prepareStatement("UPDATE games SET gameState = ? WHERE ID ?");
+            sqlStatement = dbConnection.prepareStatement("UPDATE games SET gameState = ? WHERE ID = ?");
             sqlStatement.setString(1,newGameState);
             sqlStatement.setInt(2, gameID);
             sqlStatement.executeUpdate();
