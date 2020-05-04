@@ -5,8 +5,6 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
-import java.net.InetAddress;
-import java.security.PublicKey;
 import java.util.Properties;
 
 public class Mailhandler {

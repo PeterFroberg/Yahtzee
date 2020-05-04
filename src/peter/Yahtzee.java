@@ -20,6 +20,7 @@ public class Yahtzee extends JPanel implements Runnable {
             "3 of a kind: ", "4 of a kind: ", "Full house: ", "Sm Straight: ", "Lg Straight: ", "YAHTZEE: ", "Chance: ", "Yahtzee Bonus: ",
             "Total 2: ", "Total 3: ", "Grand Total: "};
 
+    private int positionInGame = 0;
     private Player player = new Player();
     private Game game = new Game();
     private Map<String, JTextField> scoreBoardMap = new HashMap<String, JTextField>();
@@ -57,15 +58,15 @@ public class Yahtzee extends JPanel implements Runnable {
     private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
 
     //TExtfields
-    private JTextField jTextFieldDiceResult1 = new JTextField("1");
+    private JTextField jTextFieldDiceResult1 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
-    private JTextField jTextFieldDiceResult2 = new JTextField("2");
+    private JTextField jTextFieldDiceResult2 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult2 = new JCheckBox();
-    private JTextField jTextFieldDiceResult3 = new JTextField("3");
+    private JTextField jTextFieldDiceResult3 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult3 = new JCheckBox();
-    private JTextField jTextFieldDiceResult4 = new JTextField("4");
+    private JTextField jTextFieldDiceResult4 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult4 = new JCheckBox();
-    private JTextField jTextFieldDiceResult5 = new JTextField("5");
+    private JTextField jTextFieldDiceResult5 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult5 = new JCheckBox();
 
     private JTextField jTextFilednewUserInputName = new JTextField(45);
@@ -110,7 +111,7 @@ public class Yahtzee extends JPanel implements Runnable {
         menuItemInvitePlayers.setEnabled(value);
         menuItemJoinGame.setEnabled(value);
 
-        buttonSendChat.setEnabled(value);
+        //buttonSendChat.setEnabled(value);
     }
 
     /**
@@ -362,20 +363,27 @@ public class Yahtzee extends JPanel implements Runnable {
      */
     private JPanel newUserPanel() {
         JPanel newUserPanel = new JPanel();
+        JPanel leftNewUserPanel = new JPanel();
+        leftNewUserPanel.setLayout(new GridLayout(3,2,5,5));
+        leftNewUserPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+
+        leftNewUserPanel.add(new JLabel("Namn: "));
+        leftNewUserPanel.add(new JLabel("Email: "));
+        leftNewUserPanel.add(new JLabel("Password"));
+
 
         JPanel centerUserPanel = new JPanel();
-        centerUserPanel.setLayout(new GridLayout(4, 2, 5, 5));
+        centerUserPanel.setLayout(new GridLayout(3, 2, 5, 5));
         centerUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        centerUserPanel.add(new JLabel("Namn: "));
-        jTextFilednewUserInputName.addAncestorListener(new RequestFocusListener());
         centerUserPanel.add(jTextFilednewUserInputName);
-        centerUserPanel.add(new JLabel("Email: "));
+        jTextFilednewUserInputName.addAncestorListener(new RequestFocusListener());
         centerUserPanel.add(jTextFieldnewUserInputEmail);
-        centerUserPanel.add(new JLabel("Password"));
         centerUserPanel.add(newUserInputPassword);
 
+        newUserPanel.add(leftNewUserPanel);
         newUserPanel.add(centerUserPanel);
+
 
         return newUserPanel;
     }
@@ -460,18 +468,14 @@ public class Yahtzee extends JPanel implements Runnable {
             JTextField textField3 = new JTextField();
             textField3.setHorizontalAlignment(SwingConstants.CENTER);
             textField3.setEditable(false);
-            scoreBoardMap.put("P3" + LABELS[i], textField3);
-
+            scoreBoardMap.put("P4" + LABELS[i], textField3);
 
             scoreBoardPanel.add(textField);
             scoreBoardPanel.add(textField1);
             scoreBoardPanel.add(textField2);
             scoreBoardPanel.add(textField3);
-
         }
         SpringUtilities.makeGrid(scoreBoardPanel, LABELS.length + 1 ,5,6,6,6,6);
-
-
 
         return scoreBoardPanel;
     }
@@ -606,18 +610,24 @@ public class Yahtzee extends JPanel implements Runnable {
                             }
                             break;
                         case "invitations":
-                            //JOptionPane.showMessageDialog(this, message);
-                            //break;
+                            String[] invitationParts = message.split(";;");
+                            positionInGame = Integer.parseInt(invitationParts[0]);
+                            JOptionPane.showMessageDialog(this, invitationParts[1]);
+                            buttonSendChat.setEnabled(true);
+                            break;
                         case "player_added_to_game":
-                            JOptionPane.showMessageDialog(this, message);
-//                            if(message.equals("true")){
-//                                JOptionPane.showMessageDialog(this, "You have joined game! The game will start as soon as all players have joined");
-//                            }else {
-//                                JOptionPane.showMessageDialog(this, "Unable to join the game! Please check the game ID in your invitation");
-//                            }
+                            String[] playerAddedToGamesParts = message.split(";;");
+                            positionInGame = Integer.parseInt(playerAddedToGamesParts[0]);
+                            buttonSendChat.setEnabled(true);
+                            JOptionPane.showMessageDialog(this, playerAddedToGamesParts[1]);
                             break;
                         case "game_started":
                             JOptionPane.showMessageDialog(this, message);
+                            break;
+                        case "players_turn":
+                            if(message.equals(String.valueOf(positionInGame))) {
+                                buttonRollAgain.setEnabled(true);
+                            }
                             break;
                     }
                 }

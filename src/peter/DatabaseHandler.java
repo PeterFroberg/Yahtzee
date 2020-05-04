@@ -142,7 +142,7 @@ public class DatabaseHandler {
             //IF invited //add Player to game
             playerAdded = addPlayerToGame(gameID, playerID);
         } else {
-            playerAdded = "Unable to add you to the game! please check invitation for game ID";
+            playerAdded = "0;;0;;Unable to add you to the game! please check invitation for game ID";
         }
         return playerAdded;
     }
@@ -197,53 +197,35 @@ public class DatabaseHandler {
      * @return returns true if it is the last player needed to start the game, returns false if waiting for more players
      */
     public String addPlayerToGame(int gameID, int playerID) {
-        int max_position = getMaxPositionInGame(gameID);
+        int playerPosition = getMaxPositionInGame(gameID) + 1;
         int expectedNumberOfPlayersInGame = getExpectedNumberOfPlayersInGame(gameID);
         String allPlayersConnected = "";
         try {
             sqlStatement = dbConnection.prepareStatement("INSERT INTO playinggame (playerID, positionInGame, gameId) VALUES(?,?,?)");
             sqlStatement.setInt(1, playerID);
-            sqlStatement.setInt(2, max_position + 1);
+            sqlStatement.setInt(2, playerPosition);
             sqlStatement.setInt(3, gameID);
             sqlStatement.executeUpdate();
-            if (expectedNumberOfPlayersInGame - max_position == 1) {
-                //sqlStatement.setString(3, "start");
+            if (expectedNumberOfPlayersInGame - playerPosition == 0) {
                 setGameState(gameID, "start");
-                allPlayersConnected = "You are added to the game, All players connected the game will soon start";
+                allPlayersConnected = "1;;" + String.valueOf(playerPosition) + ";;You are added to the game, All players connected, the game will soon start";
             } else {
-                //sqlStatement.setString(3, "waiting for players");
                 setGameState(gameID, "waiting for players");
-                allPlayersConnected = "You are added to the game, please wait for more players to connect.";
+                allPlayersConnected = "0;;" + String.valueOf(playerPosition) + ";;You are added to the game, please wait for more players to connect.";
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
-            allPlayersConnected = "Unable to add you to the game!";
+            allPlayersConnected = "0;;Unable to add you to the game!";
         } finally {
             closeSQLStatement();
         }
         return allPlayersConnected;
     }
 
-    public boolean startGame(int gameId){
-        try {
-            String stateOfGame = "";
-            sqlStatement = dbConnection.prepareStatement("SELECT gameState FROM games WHERE ID = ? ");
-            sqlStatement.setInt(1, gameId);
-            ResultSet resultSet = sqlStatement.executeQuery();
-            if(resultSet.next()){
-                stateOfGame = resultSet.getString("gameState");
-            }
-            if (stateOfGame.equals("start")){
 
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
 
-    private void setGameState(int gameID, String newGameState){
+    public void setGameState(int gameID, String newGameState){
         try {
             sqlStatement = dbConnection.prepareStatement("UPDATE games SET gameState = ? WHERE ID = ?");
             sqlStatement.setString(1,newGameState);
@@ -253,6 +235,8 @@ public class DatabaseHandler {
             e.printStackTrace();
         }
     }
+
+
 
     /**
      * Checking if the player was invited to the specified game
@@ -361,4 +345,30 @@ public class DatabaseHandler {
     }
 
 
+    public int getNextPlayerTurn(int gameID) {
+        int nextPlayerTurn = 0;
+        try {
+            sqlStatement = dbConnection.prepareStatement("SELECT MAX(playerToPlay) playerToPlay FROM games WHERE ID = ?");
+            sqlStatement.setInt(1, gameID);
+            ResultSet resultSet = sqlStatement.executeQuery();
+            if (resultSet.next()){
+                nextPlayerTurn = resultSet.getInt("playerToPlay");
+            }
+            movePlayerTurn(gameID, nextPlayerTurn);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return nextPlayerTurn;
+    }
+
+    private void movePlayerTurn(int gameID, int playerTurn){
+        try {
+            sqlStatement = dbConnection.prepareStatement("UPDATE games SET PlayerToPlay = ? WHERE ID = ?");
+            sqlStatement.setInt(1, playerTurn + 1);
+            sqlStatement.setInt(2, gameID);
+            sqlStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
