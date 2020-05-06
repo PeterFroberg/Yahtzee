@@ -13,7 +13,7 @@ public class DatabaseHandler {
     public void connectToDatabase() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            dbConnection = DriverManager.getConnection("jdbc:mysql://192.168.15.22/yahtzee", "yuser", "kjh/(¤987JKH");
+            dbConnection = DriverManager.getConnection(System.getenv("dbserver"), System.getenv("sqluser"), System.getenv("sqlpassword"));
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
