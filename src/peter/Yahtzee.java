@@ -9,18 +9,22 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class Yahtzee extends JPanel implements Runnable {
 
-    private static final String[] LABELS = {"Aeces: ", "Twos: ", "Threes: ", "Fours: ", "Fives: ", "Sixes: ", "Total score: ", "Bonus 1: ", "Total 1: ",
-            "3 of a kind: ", "4 of a kind: ", "Full house: ", "Sm Straight: ", "Lg Straight: ", "YAHTZEE: ", "Chance: ", "Yahtzee Bonus: ",
-            "Total 2: ", "Total 3: ", "Grand Total: "};
+    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Total score", "Bonus 1", "Total 1",
+            "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "YAHTZEE", "Chance", "Yahtzee Bonus",
+            "Total 2", "Total 3", "Grand Total"};
+    private static final int MAX_NUMBER_OF_DICE_ROLLS = 3;
 
     private int positionInGame = 0;
+    private int nuberOfDicesRolled = 1;
+    private ArrayList<Integer> dices = new ArrayList<>();
+    private Map<String, Integer> calculatedScores = new HashMap<String, Integer>();
+
     private Player player = new Player();
     private Game game = new Game();
     private Map<String, JTextField> scoreBoardMap = new HashMap<String, JTextField>();
@@ -54,10 +58,9 @@ public class Yahtzee extends JPanel implements Runnable {
 
     //Textareas
     private static JTextArea jTextAreaTextAreaChatArea = new JTextArea("Detta är chat meddelanden");
-    private JTextArea jTextAreaTextAreaScore = new JTextArea("");
     private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
 
-    //TExtfields
+    //Textfields and checkboxes
     private JTextField jTextFieldDiceResult1 = new JTextField("-");
     private JCheckBox jCheckBoxDiceResult1 = new JCheckBox();
     private JTextField jTextFieldDiceResult2 = new JTextField("-");
@@ -82,8 +85,11 @@ public class Yahtzee extends JPanel implements Runnable {
 
     //Buttons
     private JButton buttonSendChat = new JButton("Send");
-    private JButton buttonRollAgain = new JButton("Roll dices");
+    private JButton buttonRollDices = new JButton("Roll dices");
     private JButton buttonSaveResult = new JButton("Save Result");
+
+    //Dropdowns
+    private JComboBox<String> comboBoxSaveOptions = new JComboBox<>(new String[]{});
 
     public Yahtzee(BufferedReader socketReader, PrintWriter socketWriter) {
 
@@ -221,6 +227,103 @@ public class Yahtzee extends JPanel implements Runnable {
 
     }
 
+    private void playTurn(){
+        buttonRollDices.setEnabled(true);
+        nuberOfDicesRolled = 1;
+        JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
+    }
+
+    private void rollDices(){
+        if(nuberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
+            sendMessage("roll_dices::na");
+            buttonSaveResult.setEnabled(true);
+            if(nuberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS){
+                buttonRollDices.setEnabled(false);
+            }
+            nuberOfDicesRolled++;
+        }else{
+            buttonRollDices.setEnabled(false);
+        }
+    }
+
+    private void putDicesInArray(){
+        dices.add(Integer.parseInt(jTextFieldDiceResult1.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult2.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult3.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult4.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult5.getText()));
+        System.out.println(dices);
+        Collections.sort(dices);
+        System.out.println(dices);
+    }
+
+    private void checkSingels(){
+        for(int i = 1; i < 7; i++) {
+            if (dices.contains(i)) {
+                if(scoreBoardMap.get("P" + positionInGame + LABELS[i]).getText().equals("")) {
+                    comboBoxSaveOptions.addItem(LABELS[i -1]);
+                    int sum = 0;
+                    for(int dice : dices){
+                        if(dice == i){
+                            sum += i;
+                        }
+                    }
+                    calculatedScores.put(LABELS[i-1], sum);
+                }
+            }
+        }
+    }
+
+    private void updateScoreBoard(String choice, int score, int playerNumber){
+        if(playerNumber == positionInGame){
+            playerNumber = 1;
+        }
+        if(playerNumber < positionInGame){
+            playerNumber++;
+        }
+        JTextField textFieldToUpdate = scoreBoardMap.get("P" + positionInGame + choice);
+        textFieldToUpdate.setText(String.valueOf(score));
+        scoreBoardMap.put("P" + playerNumber + Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString(),textFieldToUpdate);
+    }
+
+    private void saveDices(){
+        putDicesInArray();
+        checkSingels();
+        int buttonPressed = JOptionPane.showConfirmDialog(null, saveGamePanel(), "Save Dices"
+                , JOptionPane.OK_CANCEL_OPTION
+                , JOptionPane.PLAIN_MESSAGE);
+        if(buttonPressed == JOptionPane.OK_OPTION){
+            String choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
+            int score =  calculatedScores.get(choice);
+            updateScoreBoard(choice, score,0);
+            buttonSaveResult.setEnabled(false);
+            buttonRollDices.setEnabled(false);
+            sendMessage("turn_completed::" + choice + ";;" + score);
+        }
+
+    }
+
+    private void displayNewDices(String[] dices){
+        //Display dices in GUI
+        if(!jCheckBoxDiceResult1.isSelected()) {
+            jTextFieldDiceResult1.setText(dices[0]);
+        }
+        if(!jCheckBoxDiceResult2.isSelected()) {
+            jTextFieldDiceResult2.setText(dices[1]);
+        }
+        if(!jCheckBoxDiceResult3.isSelected()) {
+            jTextFieldDiceResult3.setText(dices[2]);
+        }
+        if(!jCheckBoxDiceResult4.isSelected()) {
+            jTextFieldDiceResult4.setText(dices[3]);
+        }
+        if(!jCheckBoxDiceResult5.isSelected()) {
+            jTextFieldDiceResult5.setText(dices[4]);
+        }
+    }
+
+    //PANELS
+
     /**
      * creates the top panel and populates it with swing components
      * @return - returns the created JPanel
@@ -248,8 +351,9 @@ public class Yahtzee extends JPanel implements Runnable {
         jTextFieldDiceResult5.setHorizontalAlignment(JTextField.CENTER);
         mainTopPanel.add(jTextFieldDiceResult5);
 
-        buttonRollAgain.setEnabled(false);
-        mainTopPanel.add(buttonRollAgain);
+        buttonRollDices.setEnabled(false);
+        buttonRollDices.addActionListener(actionEvent -> rollDices());
+        mainTopPanel.add(buttonRollDices);
 
         mainTopPanel.add(new JLabel("Save this dice:"));
         mainTopPanel.add(jCheckBoxDiceResult1);
@@ -268,20 +372,10 @@ public class Yahtzee extends JPanel implements Runnable {
         mainTopPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
 
         buttonSaveResult.setEnabled(false);
+        buttonSaveResult.addActionListener(actionEvent -> saveDices());
         mainTopPanel.add(buttonSaveResult);
 
         return mainTopPanel;
-    }
-
-    /**
-     * creates the center panel and populates it with swing components
-     * @return - returns the created JPanel
-     */
-    private JPanel mainCenterPanel() {
-        JPanel mainCenterPanel = new JPanel(new BorderLayout());
-        mainCenterPanel.setBorder(BorderFactory.createLineBorder(Color.green));
-
-        return mainCenterPanel;
     }
 
     /**
@@ -427,6 +521,26 @@ public class Yahtzee extends JPanel implements Runnable {
         return joinGamePanel;
     }
 
+    private JPanel saveGamePanel(){
+        JPanel saveGamePanel = new JPanel();
+        JPanel leftSaveGamePanel = new JPanel();
+        leftSaveGamePanel.setLayout(new GridLayout(2,2,5,5));
+        leftSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftSaveGamePanel.add(new JLabel("Choose combination to save: "));
+
+        JPanel centerSaveGamePanel = new JPanel();
+        centerSaveGamePanel.setLayout(new GridLayout(2,2,5,5));
+        centerSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+
+        comboBoxSaveOptions.addAncestorListener(new RequestFocusListener());
+        centerSaveGamePanel.add(comboBoxSaveOptions);
+
+        saveGamePanel.add(leftSaveGamePanel);
+        saveGamePanel.add(centerSaveGamePanel);
+
+        return saveGamePanel;
+    }
+
     private JPanel scoreBoardPanel(){
 
 
@@ -446,7 +560,7 @@ public class Yahtzee extends JPanel implements Runnable {
         scoreBoardPanel.add(h4);
 
         for (int i = 0; i < LABELS.length; i++){
-            JLabel l = new JLabel(LABELS[i], JLabel.CENTER);
+            JLabel l = new JLabel(LABELS[i] + ": ", JLabel.CENTER);
             scoreBoardPanel.add(l);
 
             JTextField textField = new JTextField();
@@ -622,13 +736,30 @@ public class Yahtzee extends JPanel implements Runnable {
                             JOptionPane.showMessageDialog(this, playerAddedToGamesParts[1]);
                             break;
                         case "game_started":
-                            JOptionPane.showMessageDialog(this, message);
-                            break;
-                        case "players_turn":
-                            if(message.equals(String.valueOf(positionInGame))) {
-                                buttonRollAgain.setEnabled(true);
+                            if(positionInGame != 1) {
+                                JOptionPane.showMessageDialog(this, message);
+                            }else{
+                                playTurn();
                             }
                             break;
+                        case "players_turn":
+                            String[] playerTurnParts = message.split(";;");
+                            int score = Integer.parseInt(playerTurnParts[3]);
+                            int playerNumber = Integer.parseInt(playerTurnParts[1]);
+                            if(playerTurnParts[0].equals(String.valueOf(positionInGame))) {
+                                playTurn();
+//                                buttonRollDices.setEnabled(true);
+//                                nuberOfDicesRolled = 1;
+//                                JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
+                            }
+                            updateScoreBoard(playerTurnParts[2],playerNumber,score);
+
+                            break;
+                        case "rolled_dices":
+                            String[] rolledDicesParts = message.split(";");
+                            displayNewDices(rolledDicesParts);
+                            break;
+
                     }
                 }
                 Thread.sleep(100);

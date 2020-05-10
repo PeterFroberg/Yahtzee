@@ -4,7 +4,6 @@ public class Player {
     private int ID = 0;
     private String name;
     private String email;
-    //private String password;
 
     public Player() {
 
@@ -34,11 +33,4 @@ public class Player {
         this.email = email;
     }
 
-//    public String getPassword() {
-//        return password;
-//    }
-
-//    public void setPassword(String password) {
-//        this.password = password;
-//    }
 }

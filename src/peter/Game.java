@@ -5,6 +5,8 @@ import java.util.ArrayList;
 
 public class Game {
     private int ID = 0;
+    private int possiotionInGame = -1;
+    private int numberOfPlayers = 0;
     private boolean active = false;
     private boolean myturn = false;
     private ArrayList<String> otherPlayers =new ArrayList<>();
