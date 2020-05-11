@@ -8,16 +8,17 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class Yahtzee extends JPanel implements Runnable {
+public class Yatzy extends JPanel implements Runnable {
 
-    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Total score", "Bonus 1", "Total 1",
-            "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "YAHTZEE", "Chance", "Yahtzee Bonus",
-            "Total 2", "Total 3", "Grand Total"};
+    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
+            "1 pair", " 2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+            "Grand total"};
     private static final int MAX_NUMBER_OF_DICE_ROLLS = 3;
 
     private int positionInGame = 0;
@@ -91,7 +92,7 @@ public class Yahtzee extends JPanel implements Runnable {
     //Dropdowns
     private JComboBox<String> comboBoxSaveOptions = new JComboBox<>(new String[]{});
 
-    public Yahtzee(BufferedReader socketReader, PrintWriter socketWriter) {
+    public Yatzy(BufferedReader socketReader, PrintWriter socketWriter) {
 
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
@@ -105,11 +106,12 @@ public class Yahtzee extends JPanel implements Runnable {
         add(mainTopPanel(), BorderLayout.NORTH);
         add(mainRightPanel(), BorderLayout.EAST);
         //add(mainCenterPanel(), BorderLayout.CENTER);
-        add(scoreBoardPanel(),BorderLayout.CENTER);
+        add(scoreBoardPanel(), BorderLayout.CENTER);
     }
 
     /**
      * Enables/disabels swing components
+     *
      * @param value - true/false
      */
     private void enableOptions(boolean value) {
@@ -143,13 +145,13 @@ public class Yahtzee extends JPanel implements Runnable {
                         e.printStackTrace();
                     }
                 }
-                if (player.getID() == -1){
+                if (player.getID() == -1) {
                     JOptionPane.showMessageDialog(this, "Unable to Login! Either User dont exist, wrong username or wrong password!");
-                }else{
+                } else {
                     jTextFieldLoginPassword.setText("");
                     enableOptions(true);
                     endLogin = true;
-                    JOptionPane.showMessageDialog(this, "Welcomback " + player.getName() + "!");
+                    JOptionPane.showMessageDialog(this, "Welcom back " + player.getName() + "!");
                 }
 
 
@@ -192,6 +194,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
     /**
      * Send message to the game server
+     *
      * @param message - message to be sent
      */
     private void sendMessage(String message) {
@@ -205,21 +208,21 @@ public class Yahtzee extends JPanel implements Runnable {
                     null, invitePlayerPanel(), "Invite players: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
-            if(buttonPressed == JOptionPane.OK_OPTION){
+            if (buttonPressed == JOptionPane.OK_OPTION) {
                 sendMessage("invite_players::" + player.getEmail() + ";" + player.getID() + ";" + jTextFieldInvitePlayers.getText());
             }
             endInviteInput = true;
         }
     }
 
-    private void joinGame(){
+    private void joinGame() {
         boolean endJoinGame = false;
         while (!endJoinGame) {
             int buttonPressed = JOptionPane.showConfirmDialog(
                     null, joinGamePanel(), "Join Game: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
-            if(buttonPressed == JOptionPane.OK_OPTION){
+            if (buttonPressed == JOptionPane.OK_OPTION) {
                 sendMessage("join_game::" + player.getID() + ";" + player.getEmail() + ";" + jTextFieldJoinGame.getText());
             }
             endJoinGame = true;
@@ -227,26 +230,26 @@ public class Yahtzee extends JPanel implements Runnable {
 
     }
 
-    private void playTurn(){
+    private void playTurn() {
         buttonRollDices.setEnabled(true);
         nuberOfDicesRolled = 1;
         JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
     }
 
-    private void rollDices(){
-        if(nuberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
+    private void rollDices() {
+        if (nuberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
             sendMessage("roll_dices::na");
             buttonSaveResult.setEnabled(true);
-            if(nuberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS){
+            if (nuberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS) {
                 buttonRollDices.setEnabled(false);
             }
             nuberOfDicesRolled++;
-        }else{
+        } else {
             buttonRollDices.setEnabled(false);
         }
     }
 
-    private void putDicesInArray(){
+    private void putDicesInArray() {
         dices.add(Integer.parseInt(jTextFieldDiceResult1.getText()));
         dices.add(Integer.parseInt(jTextFieldDiceResult2.getText()));
         dices.add(Integer.parseInt(jTextFieldDiceResult3.getText()));
@@ -257,67 +260,162 @@ public class Yahtzee extends JPanel implements Runnable {
         System.out.println(dices);
     }
 
-    private void checkSingels(){
-        for(int i = 1; i < 7; i++) {
+    private void checkSingels() {
+        for (int i = 1; i < 7; i++) {
             if (dices.contains(i)) {
-                if(scoreBoardMap.get("P" + positionInGame + LABELS[i]).getText().equals("")) {
-                    comboBoxSaveOptions.addItem(LABELS[i -1]);
+                if (scoreBoardMap.get("P1" + LABELS[i - 1]).getText().equals("")) {
+                    comboBoxSaveOptions.addItem(LABELS[i - 1]);
                     int sum = 0;
-                    for(int dice : dices){
-                        if(dice == i){
+                    for (int dice : dices) {
+                        if (dice == i) {
                             sum += i;
                         }
                     }
-                    calculatedScores.put(LABELS[i-1], sum);
+                    calculatedScores.put(LABELS[i - 1], sum);
                 }
             }
         }
     }
 
-    private void updateScoreBoard(String choice, int score, int playerNumber){
-        if(playerNumber == positionInGame){
-            playerNumber = 1;
+    private void chkeckForPairs(ArrayList<Integer> occrencesOfDices) {
+        int pair1Sum = 0;
+        int pair2Sum = 0;
+
+        for (int i = 5; i >= 0; i--) {
+            if (occrencesOfDices.get(i) > 1 && pair1Sum != 0) {
+                if(scoreBoardMap.get("P12 pairs").getText().equals("")) {
+                    comboBoxSaveOptions.addItem(" 2 pairs");
+                    pair2Sum = (i + 1) * 2;
+                    calculatedScores.put("2 pair", pair2Sum);
+                }
+            }
+            if (occrencesOfDices.get(i) > 1 && pair1Sum == 0) {
+                if(scoreBoardMap.get("P11 pair").getText().equals("")) {
+                    comboBoxSaveOptions.addItem("1 pair");
+                    pair1Sum = (i + 1) * 2;
+                    calculatedScores.put("1 pair", pair1Sum);
+                }
+            }
         }
-        if(playerNumber < positionInGame){
-            playerNumber++;
-        }
-        JTextField textFieldToUpdate = scoreBoardMap.get("P" + positionInGame + choice);
-        textFieldToUpdate.setText(String.valueOf(score));
-        scoreBoardMap.put("P" + playerNumber + Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString(),textFieldToUpdate);
     }
 
-    private void saveDices(){
+    private void checkCombinations() {
+        ArrayList<Integer> occrencesOfDices = new ArrayList<>();
+        for (int i = 1; i < 7; i++) {
+            occrencesOfDices.add(Collections.frequency(dices, i));
+        }
+        chkeckForPairs(occrencesOfDices);
+        System.out.println(occrencesOfDices);
+
+
+    }
+
+    private void updateUpperTotals(int score, int playerNumber) {
+        JTextField upperScoreTextField = scoreBoardMap.get("P" + playerNumber + "Upper score");
+        if (upperScoreTextField.getText().equals("")) {
+            upperScoreTextField.setText("0");
+        }
+        int currentTotal = Integer.parseInt(upperScoreTextField.getText()) + score;
+        upperScoreTextField.setText(String.valueOf(currentTotal));
+        //scoreBoardMap.put("P" + playerNumber + "Upper score", upperScoreTextField);
+        if (currentTotal > 62) {
+            JTextField bonusTextField = scoreBoardMap.get("P" + playerNumber + "Upper Bonus");
+            bonusTextField.setText("50");
+            //scoreBoardMap.put("P" + playerNumber + "Upper Bonus", bonusTextField);
+            currentTotal += 50;
+        }
+        JTextField upperTotal = scoreBoardMap.get("P" + playerNumber + "Upper total");
+        upperTotal.setText(String.valueOf(currentTotal));
+        //scoreBoardMap.put("P" + playerNumber + "Upper total", upperTotal);
+        updateLowerTotals(score, playerNumber);
+    }
+
+    private void updateLowerTotals(int score, int playerNumber) {
+        JTextField grandTotal = scoreBoardMap.get("P" + playerNumber + "Grand total");
+        if (grandTotal.getText().equals("")) {
+            grandTotal.setText("0");
+        }
+        int currentTotal = Integer.parseInt(grandTotal.getText()) + score;
+        grandTotal.setText(String.valueOf(currentTotal));
+
+    }
+
+    private void updateTotals(String choice, int score, int playerNumber) {
+        int i;
+        for (i = 0; i < LABELS.length; i++) {
+            if (choice.equals(LABELS[i])) {
+                break;
+            }
+        }
+        if (i < 6) {
+            updateUpperTotals(score, playerNumber);
+        } else if (i < 12) {
+            updateLowerTotals(score, playerNumber);
+        }
+
+    }
+
+    private void updateScoreBoard(String choice, int score, int playerNumber) {
+        if (playerNumber == positionInGame) {
+            playerNumber = 1;
+
+        } else {
+            if (playerNumber < positionInGame) {
+                playerNumber = positionInGame;
+            }
+        }
+
+        JTextField textFieldToUpdate = scoreBoardMap.get("P" + playerNumber + choice);
+        textFieldToUpdate.setText(String.valueOf(score));
+        scoreBoardMap.put("P" + playerNumber + choice, textFieldToUpdate);
+        updateTotals(choice, score, playerNumber);
+    }
+
+    private void uncheckDices() {
+        jCheckBoxDiceResult1.setSelected(false);
+        jCheckBoxDiceResult2.setSelected(false);
+        jCheckBoxDiceResult3.setSelected(false);
+        jCheckBoxDiceResult4.setSelected(false);
+        jCheckBoxDiceResult5.setSelected(false);
+    }
+
+    private void saveDices() {
+        calculatedScores.clear();
+        dices.clear();
         putDicesInArray();
+        comboBoxSaveOptions.removeAllItems();
         checkSingels();
+        checkCombinations();
         int buttonPressed = JOptionPane.showConfirmDialog(null, saveGamePanel(), "Save Dices"
                 , JOptionPane.OK_CANCEL_OPTION
                 , JOptionPane.PLAIN_MESSAGE);
-        if(buttonPressed == JOptionPane.OK_OPTION){
+        if (buttonPressed == JOptionPane.OK_OPTION) {
             String choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
-            int score =  calculatedScores.get(choice);
-            updateScoreBoard(choice, score,0);
+            int score = calculatedScores.get(choice);
+            updateScoreBoard(choice, score, positionInGame);
             buttonSaveResult.setEnabled(false);
             buttonRollDices.setEnabled(false);
+            displayNewDices(new String[]{"-", "-", "-", "-", "-"});
             sendMessage("turn_completed::" + choice + ";;" + score);
+            uncheckDices();
         }
-
     }
 
-    private void displayNewDices(String[] dices){
+    private void displayNewDices(String[] dices) {
         //Display dices in GUI
-        if(!jCheckBoxDiceResult1.isSelected()) {
+        if (!jCheckBoxDiceResult1.isSelected()) {
             jTextFieldDiceResult1.setText(dices[0]);
         }
-        if(!jCheckBoxDiceResult2.isSelected()) {
+        if (!jCheckBoxDiceResult2.isSelected()) {
             jTextFieldDiceResult2.setText(dices[1]);
         }
-        if(!jCheckBoxDiceResult3.isSelected()) {
+        if (!jCheckBoxDiceResult3.isSelected()) {
             jTextFieldDiceResult3.setText(dices[2]);
         }
-        if(!jCheckBoxDiceResult4.isSelected()) {
+        if (!jCheckBoxDiceResult4.isSelected()) {
             jTextFieldDiceResult4.setText(dices[3]);
         }
-        if(!jCheckBoxDiceResult5.isSelected()) {
+        if (!jCheckBoxDiceResult5.isSelected()) {
             jTextFieldDiceResult5.setText(dices[4]);
         }
     }
@@ -326,6 +424,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
     /**
      * creates the top panel and populates it with swing components
+     *
      * @return - returns the created JPanel
      */
     private JPanel mainTopPanel() {
@@ -380,6 +479,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
     /**
      * creates the right panel and populates it with swing components
+     *
      * @return - returns the created JPanel
      */
     private JPanel mainRightPanel() {
@@ -427,6 +527,7 @@ public class Yahtzee extends JPanel implements Runnable {
 
     /**
      * creates the Login panel and populates it with swing components
+     *
      * @return - returns the created JPanel
      */
     private JPanel loginPanel() {
@@ -453,13 +554,14 @@ public class Yahtzee extends JPanel implements Runnable {
 
     /**
      * creates the New user panel and populates it with swing components
+     *
      * @return - returns the created JPanel
      */
     private JPanel newUserPanel() {
         JPanel newUserPanel = new JPanel();
         JPanel leftNewUserPanel = new JPanel();
-        leftNewUserPanel.setLayout(new GridLayout(3,2,5,5));
-        leftNewUserPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftNewUserPanel.setLayout(new GridLayout(3, 2, 5, 5));
+        leftNewUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         leftNewUserPanel.add(new JLabel("Namn: "));
         leftNewUserPanel.add(new JLabel("Email: "));
@@ -482,17 +584,17 @@ public class Yahtzee extends JPanel implements Runnable {
         return newUserPanel;
     }
 
-    private JPanel invitePlayerPanel(){
+    private JPanel invitePlayerPanel() {
         JPanel invitePanel = new JPanel();
 
         JPanel leftInvitePanel = new JPanel();
-        leftInvitePanel.setLayout(new GridLayout(2,2,5,5));
-        leftInvitePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftInvitePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        leftInvitePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         leftInvitePanel.add(new JLabel("Invite players"));
 
         JPanel centerInvitePanel = new JPanel();
-        centerInvitePanel.setLayout(new GridLayout(2,2,5,5));
-        centerInvitePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerInvitePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        centerInvitePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jTextFieldInvitePlayers.addAncestorListener(new RequestFocusListener());
         centerInvitePanel.add(jTextFieldInvitePlayers);
 
@@ -502,16 +604,16 @@ public class Yahtzee extends JPanel implements Runnable {
         return invitePanel;
     }
 
-    private JPanel joinGamePanel(){
+    private JPanel joinGamePanel() {
         JPanel joinGamePanel = new JPanel();
         JPanel leftJoinGamePanel = new JPanel();
-        leftJoinGamePanel.setLayout(new GridLayout(2,2,5,5));
-        leftJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftJoinGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        leftJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         leftJoinGamePanel.add(new JLabel("Join game: "));
 
         JPanel centerJoinGamePanel = new JPanel();
-        centerJoinGamePanel.setLayout(new GridLayout(2,2,5,5));
-        centerJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerJoinGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        centerJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jTextFieldJoinGame.addAncestorListener(new RequestFocusListener());
         centerJoinGamePanel.add(jTextFieldJoinGame);
 
@@ -521,16 +623,16 @@ public class Yahtzee extends JPanel implements Runnable {
         return joinGamePanel;
     }
 
-    private JPanel saveGamePanel(){
+    private JPanel saveGamePanel() {
         JPanel saveGamePanel = new JPanel();
         JPanel leftSaveGamePanel = new JPanel();
-        leftSaveGamePanel.setLayout(new GridLayout(2,2,5,5));
-        leftSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftSaveGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        leftSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         leftSaveGamePanel.add(new JLabel("Choose combination to save: "));
 
         JPanel centerSaveGamePanel = new JPanel();
-        centerSaveGamePanel.setLayout(new GridLayout(2,2,5,5));
-        centerSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        centerSaveGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
+        centerSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         comboBoxSaveOptions.addAncestorListener(new RequestFocusListener());
         centerSaveGamePanel.add(comboBoxSaveOptions);
@@ -541,7 +643,7 @@ public class Yahtzee extends JPanel implements Runnable {
         return saveGamePanel;
     }
 
-    private JPanel scoreBoardPanel(){
+    private JPanel scoreBoardPanel() {
 
 
         //Create and populate the panel.
@@ -559,7 +661,7 @@ public class Yahtzee extends JPanel implements Runnable {
         scoreBoardPanel.add(h3);
         scoreBoardPanel.add(h4);
 
-        for (int i = 0; i < LABELS.length; i++){
+        for (int i = 0; i < LABELS.length; i++) {
             JLabel l = new JLabel(LABELS[i] + ": ", JLabel.CENTER);
             scoreBoardPanel.add(l);
 
@@ -589,13 +691,14 @@ public class Yahtzee extends JPanel implements Runnable {
             scoreBoardPanel.add(textField2);
             scoreBoardPanel.add(textField3);
         }
-        SpringUtilities.makeGrid(scoreBoardPanel, LABELS.length + 1 ,5,6,6,6,6);
+        SpringUtilities.makeGrid(scoreBoardPanel, LABELS.length + 1, 5, 6, 6, 6, 6);
 
         return scoreBoardPanel;
     }
 
     /**
      * creates the menubar and populates it with swing components
+     *
      * @return - returns the created menubar
      */
     private JMenuBar createMenuBar() {
@@ -655,7 +758,7 @@ public class Yahtzee extends JPanel implements Runnable {
             e.printStackTrace();
         }
 
-        Yahtzee mainPanel = new Yahtzee(socketReader, socketWriter);
+        Yatzy mainPanel = new Yatzy(socketReader, socketWriter);
 
         /**
          * create a Receive thread
@@ -671,7 +774,7 @@ public class Yahtzee extends JPanel implements Runnable {
         frame.getContentPane().add(mainPanel);
         frame.setJMenuBar(menuBar);
         frame.pack();
-        frame.setSize(800, 700);
+        frame.setSize(800, 720);
         frame.setLocationByPlatform(true);
         frame.setVisible(true);
     }
@@ -697,16 +800,17 @@ public class Yahtzee extends JPanel implements Runnable {
                     System.out.println("Received: " + incommingMessage);
                     String[] parts = incommingMessage.split("::");
                     String messageCode = parts[0];
-                    String message = parts[1];
+                    String[] messageParts = parts[1].split(";;");
                     //GÖR OM TILL CASE/SWITCH
                     switch (messageCode) {
                         case "chatt":
-                            jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + message);
+                            //jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + message);
+                            jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + messageParts[0]);
                             break;
                         case "new_user":
-                            String[] newUserParts = message.split(";;");
-                            if (!newUserParts[0].equals("-1")) {
-                                player.setID(Integer.valueOf(newUserParts[0]));
+                            //String[] newUserParts = message.split(";;");
+                            if (!messageParts[0].equals("-1")) {
+                                player.setID(Integer.valueOf(messageParts[0]));
                                 player.setName(jTextFilednewUserInputName.getText());
                                 player.setEmail(jTextFieldnewUserInputEmail.getText());
                             } else {
@@ -714,50 +818,48 @@ public class Yahtzee extends JPanel implements Runnable {
                             }
                             break;
                         case "login_user":
-                            String[] loginUserParts = message.split(";;");
-                            if(!loginUserParts[0].equals("-1")){
-                                player.setID(Integer.valueOf(loginUserParts[0]));
-                                player.setName(loginUserParts[1]);
-                                player.setEmail(loginUserParts[2]);
-                            }else{
+                            //String[] loginUserParts = message.split(";;");
+                            if (!messageParts[0].equals("-1")) {
+                                player.setID(Integer.valueOf(messageParts[0]));
+                                player.setName(messageParts[1]);
+                                player.setEmail(messageParts[2]);
+                            } else {
                                 player.setID(-1);
                             }
                             break;
                         case "invitations":
-                            String[] invitationParts = message.split(";;");
-                            positionInGame = Integer.parseInt(invitationParts[0]);
-                            JOptionPane.showMessageDialog(this, invitationParts[1]);
+                            //String[] messageParts = message.split(";;");
+                            positionInGame = Integer.parseInt(messageParts[0]);
+                            JOptionPane.showMessageDialog(this, messageParts[1]);
                             buttonSendChat.setEnabled(true);
                             break;
                         case "player_added_to_game":
-                            String[] playerAddedToGamesParts = message.split(";;");
-                            positionInGame = Integer.parseInt(playerAddedToGamesParts[0]);
+                            //String[] messageParts = message.split(";;");
+                            positionInGame = Integer.parseInt(messageParts[0]);
                             buttonSendChat.setEnabled(true);
-                            JOptionPane.showMessageDialog(this, playerAddedToGamesParts[1]);
+                            JOptionPane.showMessageDialog(this, messageParts[1]);
                             break;
                         case "game_started":
-                            if(positionInGame != 1) {
-                                JOptionPane.showMessageDialog(this, message);
-                            }else{
+                            if (positionInGame != 1) {
+                                JOptionPane.showMessageDialog(this, messageParts[0]);
+                            } else {
                                 playTurn();
                             }
                             break;
                         case "players_turn":
-                            String[] playerTurnParts = message.split(";;");
-                            int score = Integer.parseInt(playerTurnParts[3]);
-                            int playerNumber = Integer.parseInt(playerTurnParts[1]);
-                            if(playerTurnParts[0].equals(String.valueOf(positionInGame))) {
+                            //String[] messageParts = message.split(";;");
+                            int score = Integer.parseInt(messageParts[3]);
+                            int playerNumber = Integer.parseInt(messageParts[1]);
+                            if (messageParts[0].equals(String.valueOf(positionInGame))) {
                                 playTurn();
-//                                buttonRollDices.setEnabled(true);
-//                                nuberOfDicesRolled = 1;
-//                                JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
                             }
-                            updateScoreBoard(playerTurnParts[2],playerNumber,score);
+                            updateScoreBoard(messageParts[2], score, playerNumber);
 
                             break;
                         case "rolled_dices":
-                            String[] rolledDicesParts = message.split(";");
-                            displayNewDices(rolledDicesParts);
+                            //String[] rolledDicesParts = message.split(";");
+                            dices.clear();
+                            displayNewDices(messageParts);
                             break;
 
                     }
