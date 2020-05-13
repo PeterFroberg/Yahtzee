@@ -8,17 +8,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class Yatzy extends JPanel implements Runnable {
 
     private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
-            "1 pair", " 2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+            "1 pair", "2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
             "Grand total"};
+
+    private ArrayList<String> unUsedScoreFields = new ArrayList<>();
+    // private ArrayList<String> usedScoreFields = new ArrayList<>();
+
     private static final int MAX_NUMBER_OF_DICE_ROLLS = 3;
 
     private int positionInGame = 0;
@@ -43,7 +45,7 @@ public class Yatzy extends JPanel implements Runnable {
 
     private static JMenuBar menuBar = new JMenuBar();
 
-    private static LinkedBlockingQueue<String> serverMessages = new LinkedBlockingQueue<String>();
+    //private static LinkedBlockingQueue<String> serverMessages = new LinkedBlockingQueue<String>();
 
     /**
      * Create GUI components for the application
@@ -91,11 +93,20 @@ public class Yatzy extends JPanel implements Runnable {
 
     //Dropdowns
     private JComboBox<String> comboBoxSaveOptions = new JComboBox<>(new String[]{});
+    private JComboBox<String> comboBoxStikeOutOptions = new JComboBox<>(new String[]{});
 
     public Yatzy(BufferedReader socketReader, PrintWriter socketWriter) {
 
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
+
+        //Fill unUsedScoreFieldsArray
+        unUsedScoreFields.addAll(Arrays.asList(LABELS));
+        //Remove calculatedFields
+        unUsedScoreFields.remove("Upper score");
+        unUsedScoreFields.remove("Upper Bonus");
+        unUsedScoreFields.remove("Upper total");
+        unUsedScoreFields.remove("Grand total");
 
         //Create Menu
         menuBar = createMenuBar();
@@ -263,51 +274,91 @@ public class Yatzy extends JPanel implements Runnable {
     private void checkSingels() {
         for (int i = 1; i < 7; i++) {
             if (dices.contains(i)) {
-                if (scoreBoardMap.get("P1" + LABELS[i - 1]).getText().equals("")) {
-                    comboBoxSaveOptions.addItem(LABELS[i - 1]);
+                if (unUsedScoreFields.contains(LABELS[i - 1])) {
                     int sum = 0;
                     for (int dice : dices) {
                         if (dice == i) {
                             sum += i;
                         }
                     }
-                    calculatedScores.put(LABELS[i - 1], sum);
+                    addCalculatedScore(LABELS[i - 1], sum);
                 }
             }
         }
     }
 
-    private void chkeckForPairs(ArrayList<Integer> occrencesOfDices) {
+    private void checkForMultiples(ArrayList<Integer> occurrencesOfDices) {
         int pair1Sum = 0;
-        int pair2Sum = 0;
-
         for (int i = 5; i >= 0; i--) {
-            if (occrencesOfDices.get(i) > 1 && pair1Sum != 0) {
-                if(scoreBoardMap.get("P12 pairs").getText().equals("")) {
-                    comboBoxSaveOptions.addItem(" 2 pairs");
-                    pair2Sum = (i + 1) * 2;
-                    calculatedScores.put("2 pair", pair2Sum);
+            int occurrences = occurrencesOfDices.get(i);
+            if (pair1Sum == 0 && unUsedScoreFields.contains("1 pair") && occurrences > 1) {
+                pair1Sum = (i + 1) * 2;
+                addCalculatedScore("1 pair", pair1Sum);
+            }
+            if (pair1Sum != 0 && unUsedScoreFields.contains("2 pairs") && occurrences > 1) {
+                if (!((i + 1 == (pair1Sum / 2)) && !(occurrences > 3))) {
+                    addCalculatedScore("2 pairs", ((i + 1) * 2) + pair1Sum);
                 }
             }
-            if (occrencesOfDices.get(i) > 1 && pair1Sum == 0) {
-                if(scoreBoardMap.get("P11 pair").getText().equals("")) {
-                    comboBoxSaveOptions.addItem("1 pair");
-                    pair1Sum = (i + 1) * 2;
-                    calculatedScores.put("1 pair", pair1Sum);
-                }
+            if (unUsedScoreFields.contains("3 of a kind") && occurrences > 2) {
+                addCalculatedScore("3 of a kind", (i + 1) * 3);
+            }
+            if (unUsedScoreFields.contains("4 of a kind") && occurrences > 3) {
+                addCalculatedScore("4 of a kind", (i + 1) * 4);
+            }
+            if (unUsedScoreFields.contains("YATZY") && occurrences > 4) {
+                addCalculatedScore("YATZY", 50);
             }
         }
     }
 
     private void checkCombinations() {
-        ArrayList<Integer> occrencesOfDices = new ArrayList<>();
+        ArrayList<Integer> occurrencesOfDices = new ArrayList<>();
         for (int i = 1; i < 7; i++) {
-            occrencesOfDices.add(Collections.frequency(dices, i));
+            occurrencesOfDices.add(Collections.frequency(dices, i));
         }
-        chkeckForPairs(occrencesOfDices);
-        System.out.println(occrencesOfDices);
+        checkForMultiples(occurrencesOfDices);
+        checkForCombinations(occurrencesOfDices);
+    }
 
+    private void checkForCombinations(ArrayList<Integer> occurrencesOfDices) {
+        //Check Full house
+        if (calculatedScores.containsKey("3 of a kind")) {
+            int tripletIndex = dices.indexOf(3);
+            int pairIndex = dices.indexOf(2);
+            if (pairIndex != -1) {
+                int sum = ((tripletIndex + 1) * 3) + ((pairIndex + 1) * 2);
+                addCalculatedScore("Full house", sum);
+            }
+        }
+        //Check sm straight
+        if (occurrencesOfDices.get(0) == 1 &&
+                occurrencesOfDices.get(1) == 1 &&
+                occurrencesOfDices.get(2) == 1 &&
+                occurrencesOfDices.get(3) == 1) {
+            addCalculatedScore("Sm Straight", 15);
+        }
 
+        //Check lg straight
+        if (occurrencesOfDices.get(1) == 1 &&
+                occurrencesOfDices.get(2) == 1 &&
+                occurrencesOfDices.get(3) == 1 &&
+                occurrencesOfDices.get(4) == 1) {
+            addCalculatedScore("Sm Straight", 20);
+        }
+        //add Chance
+        if (unUsedScoreFields.contains("Chance")) {
+            int chanceSum = 0;
+            for (Integer d : dices) {
+                chanceSum += d;
+            }
+            addCalculatedScore("Chance", chanceSum);
+        }
+    }
+
+    private void addCalculatedScore(String scoreField, int score) {
+        comboBoxSaveOptions.addItem(scoreField);
+        calculatedScores.put(scoreField, score);
     }
 
     private void updateUpperTotals(int score, int playerNumber) {
@@ -317,16 +368,13 @@ public class Yatzy extends JPanel implements Runnable {
         }
         int currentTotal = Integer.parseInt(upperScoreTextField.getText()) + score;
         upperScoreTextField.setText(String.valueOf(currentTotal));
-        //scoreBoardMap.put("P" + playerNumber + "Upper score", upperScoreTextField);
         if (currentTotal > 62) {
             JTextField bonusTextField = scoreBoardMap.get("P" + playerNumber + "Upper Bonus");
             bonusTextField.setText("50");
-            //scoreBoardMap.put("P" + playerNumber + "Upper Bonus", bonusTextField);
             currentTotal += 50;
         }
         JTextField upperTotal = scoreBoardMap.get("P" + playerNumber + "Upper total");
         upperTotal.setText(String.valueOf(currentTotal));
-        //scoreBoardMap.put("P" + playerNumber + "Upper total", upperTotal);
         updateLowerTotals(score, playerNumber);
     }
 
@@ -355,6 +403,11 @@ public class Yatzy extends JPanel implements Runnable {
 
     }
 
+    private void updateUsedScoreFields(String scoreFileld) {
+        unUsedScoreFields.remove(scoreFileld);
+        // usedScoreFields.add(scoreFileld);
+    }
+
     private void updateScoreBoard(String choice, int score, int playerNumber) {
         if (playerNumber == positionInGame) {
             playerNumber = 1;
@@ -367,7 +420,9 @@ public class Yatzy extends JPanel implements Runnable {
 
         JTextField textFieldToUpdate = scoreBoardMap.get("P" + playerNumber + choice);
         textFieldToUpdate.setText(String.valueOf(score));
-        scoreBoardMap.put("P" + playerNumber + choice, textFieldToUpdate);
+        if (playerNumber == 1) {
+            updateUsedScoreFields(choice);
+        }
         updateTotals(choice, score, playerNumber);
     }
 
@@ -379,44 +434,70 @@ public class Yatzy extends JPanel implements Runnable {
         jCheckBoxDiceResult5.setSelected(false);
     }
 
+    private void saveScore(boolean strikeOut) {
+        int score;
+        String choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
+        if (strikeOut) {
+            score = 0;
+        } else {
+            score = calculatedScores.get(choice);
+        }
+        updateScoreBoard(choice, score, positionInGame);
+        buttonSaveResult.setEnabled(false);
+        buttonRollDices.setEnabled(false);
+        uncheckDices();
+        displayNewDices(new String[]{"-", "-", "-", "-", "-"});
+        sendMessage("turn_completed::" + choice + ";;" + score);
+
+    }
+
     private void saveDices() {
+        //prepare enviroment
         calculatedScores.clear();
         dices.clear();
-        putDicesInArray();
         comboBoxSaveOptions.removeAllItems();
+        comboBoxStikeOutOptions.removeAllItems();
+
+        putDicesInArray();
         checkSingels();
         checkCombinations();
-        int buttonPressed = JOptionPane.showConfirmDialog(null, saveGamePanel(), "Save Dices"
-                , JOptionPane.OK_CANCEL_OPTION
-                , JOptionPane.PLAIN_MESSAGE);
-        if (buttonPressed == JOptionPane.OK_OPTION) {
-            String choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
-            int score = calculatedScores.get(choice);
-            updateScoreBoard(choice, score, positionInGame);
-            buttonSaveResult.setEnabled(false);
-            buttonRollDices.setEnabled(false);
-            displayNewDices(new String[]{"-", "-", "-", "-", "-"});
-            sendMessage("turn_completed::" + choice + ";;" + score);
-            uncheckDices();
+
+        for (String s : unUsedScoreFields) {
+            if (!calculatedScores.containsKey(s)) {
+                comboBoxStikeOutOptions.addItem(s);
+            }
+        }
+        Object[] options = {"Save score",
+                "Strike out",
+                "Cancel"};
+        int buttonpressed = JOptionPane.showOptionDialog(null, saveResultPanel(), "Save score", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
+
+        switch (buttonpressed) {
+            case JOptionPane.YES_OPTION:
+                saveScore(false);
+                break;
+            case JOptionPane.NO_OPTION:
+                saveScore(true);
+                break;
         }
     }
 
-    private void displayNewDices(String[] dices) {
+    private void displayNewDices(String[] dicesStrings) {
         //Display dices in GUI
         if (!jCheckBoxDiceResult1.isSelected()) {
-            jTextFieldDiceResult1.setText(dices[0]);
+            jTextFieldDiceResult1.setText(dicesStrings[0]);
         }
         if (!jCheckBoxDiceResult2.isSelected()) {
-            jTextFieldDiceResult2.setText(dices[1]);
+            jTextFieldDiceResult2.setText(dicesStrings[1]);
         }
         if (!jCheckBoxDiceResult3.isSelected()) {
-            jTextFieldDiceResult3.setText(dices[2]);
+            jTextFieldDiceResult3.setText(dicesStrings[2]);
         }
         if (!jCheckBoxDiceResult4.isSelected()) {
-            jTextFieldDiceResult4.setText(dices[3]);
+            jTextFieldDiceResult4.setText(dicesStrings[3]);
         }
         if (!jCheckBoxDiceResult5.isSelected()) {
-            jTextFieldDiceResult5.setText(dices[4]);
+            jTextFieldDiceResult5.setText(dicesStrings[4]);
         }
     }
 
@@ -623,24 +704,26 @@ public class Yatzy extends JPanel implements Runnable {
         return joinGamePanel;
     }
 
-    private JPanel saveGamePanel() {
-        JPanel saveGamePanel = new JPanel();
-        JPanel leftSaveGamePanel = new JPanel();
-        leftSaveGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        leftSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftSaveGamePanel.add(new JLabel("Choose combination to save: "));
+    private JPanel saveResultPanel() {
+        JPanel saveResultPanel = new JPanel();
+        JPanel leftSaveResultPanel = new JPanel();
+        leftSaveResultPanel.setLayout(new GridLayout(3, 2, 5, 5));
+        leftSaveResultPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        leftSaveResultPanel.add(new JLabel("Choose combination to save: "));
+        leftSaveResultPanel.add(new JLabel("If no, choose combination to strike out ( 0 points)"));
 
-        JPanel centerSaveGamePanel = new JPanel();
-        centerSaveGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        centerSaveGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        JPanel centerSaveResultPanel = new JPanel();
+        centerSaveResultPanel.setLayout(new GridLayout(3, 2, 5, 5));
+        centerSaveResultPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         comboBoxSaveOptions.addAncestorListener(new RequestFocusListener());
-        centerSaveGamePanel.add(comboBoxSaveOptions);
+        centerSaveResultPanel.add(comboBoxSaveOptions);
+        centerSaveResultPanel.add(comboBoxStikeOutOptions);
 
-        saveGamePanel.add(leftSaveGamePanel);
-        saveGamePanel.add(centerSaveGamePanel);
+        saveResultPanel.add(leftSaveResultPanel);
+        saveResultPanel.add(centerSaveResultPanel);
 
-        return saveGamePanel;
+        return saveResultPanel;
     }
 
     private JPanel scoreBoardPanel() {
@@ -661,36 +744,37 @@ public class Yatzy extends JPanel implements Runnable {
         scoreBoardPanel.add(h3);
         scoreBoardPanel.add(h4);
 
-        for (int i = 0; i < LABELS.length; i++) {
-            JLabel l = new JLabel(LABELS[i] + ": ", JLabel.CENTER);
+        for (String label : LABELS) {
+            JLabel l = new JLabel(label + ": ", JLabel.CENTER);
             scoreBoardPanel.add(l);
 
             JTextField textField = new JTextField();
             textField.setHorizontalAlignment(SwingConstants.CENTER);
             textField.setBackground(Color.white);
             textField.setEditable(false);
-            scoreBoardMap.put("P1" + LABELS[i], textField);
+            scoreBoardMap.put("P1" + label, textField);
 
             JTextField textField1 = new JTextField();
             textField1.setHorizontalAlignment(SwingConstants.CENTER);
             textField1.setEditable(false);
-            scoreBoardMap.put("P2" + LABELS[i], textField1);
+            scoreBoardMap.put("P2" + label, textField1);
 
             JTextField textField2 = new JTextField();
             textField2.setHorizontalAlignment(SwingConstants.CENTER);
             textField2.setEditable(false);
-            scoreBoardMap.put("P3" + LABELS[i], textField2);
+            scoreBoardMap.put("P3" + label, textField2);
 
             JTextField textField3 = new JTextField();
             textField3.setHorizontalAlignment(SwingConstants.CENTER);
             textField3.setEditable(false);
-            scoreBoardMap.put("P4" + LABELS[i], textField3);
+            scoreBoardMap.put("P4" + label, textField3);
 
             scoreBoardPanel.add(textField);
             scoreBoardPanel.add(textField1);
             scoreBoardPanel.add(textField2);
             scoreBoardPanel.add(textField3);
         }
+
         SpringUtilities.makeGrid(scoreBoardPanel, LABELS.length + 1, 5, 6, 6, 6, 6);
 
         return scoreBoardPanel;
@@ -703,7 +787,7 @@ public class Yatzy extends JPanel implements Runnable {
      */
     private JMenuBar createMenuBar() {
         menuBar = new JMenuBar();
-        JMenu menu = new JMenu("Play");
+        JMenu menu = new JMenu("Menu");
         menu.setMnemonic(KeyEvent.VK_P);
         menuBar.add(menu);
 
@@ -769,7 +853,7 @@ public class Yatzy extends JPanel implements Runnable {
         /**
          * Display GUI
          */
-        JFrame frame = new JFrame("Peters online Yahtzee game!");
+        JFrame frame = new JFrame("Peters online Yatzy game!");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(mainPanel);
         frame.setJMenuBar(menuBar);
