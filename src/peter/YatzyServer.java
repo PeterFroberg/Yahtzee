@@ -14,8 +14,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class YatzyServer implements Runnable {
 
-    private int playerPositionInGame = 0;
-
     private DatabaseHandler databaseHandler = new DatabaseHandler();
     private Mailhandler mailhandler = new Mailhandler(System.getenv("mailServer"), System.getenv("mailUserName"), System.getenv("mailPassword"));
 
@@ -36,7 +34,7 @@ public class YatzyServer implements Runnable {
         //YahtzeeServer.gameMessagesQueues = gameMessageQueues;
     }
 
-    private void createCommnunicationForGame(int gameID) {
+    private void createCommnunicationForGame() {
         //Create new gameMessagingArray
         //CopyOnWriteArrayList<LinkedBlockingQueue<String>> newGameMessagingQueuesArray = new CopyOnWriteArrayList<>();
         //Add clientsMessageArray to game
@@ -44,21 +42,22 @@ public class YatzyServer implements Runnable {
         gameMessagesQueues.add(playerMessageQueue);
         //gameMessagesQueues.add(playerMessageQueue);
         //Add gameMessagingArray to server MessagingArray
-        gamesMessagingQueues.put(gameID, gameMessagesQueues);
+        //gamesMessagingQueues.put(gameID, gameMessagesQueues);
+        gamesMessagingQueues.put(currentGame.getID(), gameMessagesQueues);
     }
 
-    private void joinCommunicationForGame(int gameID) {
-        gameMessagesQueues = gamesMessagingQueues.get(gameID);
+    private void joinCommunicationForGame() {
+        gameMessagesQueues = gamesMessagingQueues.get(currentGame.getID());
         //CopyOnWriteArrayList<LinkedBlockingQueue<String>> messagingQueueArrayToJoin = gamesMessagingQueues.get(gameID);
         gameMessagesQueues.add(playerMessageQueue);
     }
 
-    private void checkGameStarted(int gameID) {
+    private void checkGameStarted() {
 
         new Thread(() -> {
             boolean started = false;
             while (!started) {
-                started = databaseHandler.checkGameStarted(gameID);
+                started = databaseHandler.checkGameStarted(currentGame.getID());
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
@@ -66,7 +65,7 @@ public class YatzyServer implements Runnable {
                 }
             }
             sendToMyMessageQueue("game_started::", "Game is started, Please wait for your turn");
-            databaseHandler.setGameState(gameID, "playing");
+            databaseHandler.setGameState(currentGame.getID(), "playing");
             //playNextTurn(gameID);
             //databaseHandler.disconnectDatabase();
         }).start();
@@ -84,18 +83,6 @@ public class YatzyServer implements Runnable {
         }
         return randomNumbers.toString();
     }
-
-    private void playNextTurn(int gameID) {
-        for (LinkedBlockingQueue<String> que : gameMessagesQueues) {
-            try {
-                //SKA ändras till nextPlayer
-                que.put("players_turn::" +  playerPositionInGame);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 
     /**
      * Sends message to all players in the same game
@@ -188,7 +175,7 @@ public class YatzyServer implements Runnable {
     public void run() {
 
         boolean gameActive = true;
-        int gameID = 0;
+        //int gameID = 0;
 
         /**
          * Creates reader and writer for communication to and from the client
@@ -263,18 +250,18 @@ public class YatzyServer implements Runnable {
                         String[] invitedPlayersParts = message.split(";");
                         String[] players = invitedPlayersParts[2].split(";");
                         currentGame.setNumberOfPlayers(players.length + 1);
-                        int newGameID = databaseHandler.invitePlayers(invitedPlayersParts[0], players);
-                        String body = "You are invited for a game of Yahtzee by " + invitedPlayersParts[0] + "\n Start the yahtzee program and use the \"join game\" option and input the game# " + String.valueOf(newGameID) + " in the play menu to join";
+                        currentGame.setID(databaseHandler.invitePlayers(invitedPlayersParts[0], players));
+                        String body = "You are invited for a game of Yahtzee by " + invitedPlayersParts[0] + "\n Start the yahtzee program and use the \"join game\" option and input the game# " + String.valueOf(currentGame.getID()) + " in the play menu to join";
                         String result = "";
                         for (String playerToInvite : players) {
                             result = mailhandler.send(playerToInvite, "testarepostkurs@gmail.com", "Yahtzee invitation", body);
                         }
-                        playerPositionInGame = 1;
-                        sendToMyMessageQueue("invitations::", playerPositionInGame + ";;" + result);
-                        databaseHandler.addPlayerToGame(newGameID, Integer.parseInt(invitedPlayersParts[1]));
-                        createCommnunicationForGame(newGameID);
+                        currentGame.setPositionInGame(1);
+                        sendToMyMessageQueue("invitations::", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + result);
+                        databaseHandler.addPlayerToGame(currentGame.getID(), Integer.parseInt(invitedPlayersParts[1]));
+                        createCommnunicationForGame();
 
-                        checkGameStarted(newGameID);
+                        checkGameStarted();
 
                         break;
                     case "join_game":
@@ -282,32 +269,37 @@ public class YatzyServer implements Runnable {
                         String[] joinGameParts = message.split(";");
                         int playerID = Integer.parseInt(joinGameParts[0]);
                         String playerEmail = joinGameParts[1];
-                        gameID = Integer.parseInt(joinGameParts[2]);
-
-                        String playerAdded = databaseHandler.joinGame(playerID, playerEmail, gameID);
+                        currentGame.setID(Integer.parseInt(joinGameParts[2]));
+                        String playerAdded = databaseHandler.joinGame(playerID, playerEmail, currentGame.getID());
                         String[] playerAddedToGameParts = playerAdded.split(";;");
-                        playerPositionInGame = Integer.parseInt(playerAddedToGameParts[1]);
-                        sendToMyMessageQueue("player_added_to_game::", playerAddedToGameParts[1] + ";;" + playerAddedToGameParts[2]);
-                        joinCommunicationForGame(Integer.parseInt(joinGameParts[2]));
-                        checkGameStarted(gameID);
-                        //sendToInGamePlayers("players_turn::","1", true);
+                        currentGame.setPositionInGame(Integer.parseInt(playerAddedToGameParts[1]));
+                        currentGame.setNumberOfPlayers(databaseHandler.getNumberOfPlayersInGame(currentGame.getID()));
+                        sendToMyMessageQueue("player_added_to_game::", playerAddedToGameParts[1] + ";;" + currentGame.getNumberOfPlayers() + ";;" + playerAddedToGameParts[2]);
+                        joinCommunicationForGame();
+                        checkGameStarted();
                         //databaseHandler.disconnectDatabase();
                         break;
                     case "turn_completed":
                         currentGame.setCurrentTurn(currentGame.getCurrentTurn() + 1);
                         String[] turnCompetedParts = message.split(";;");
-                        int nextPlayer = playerPositionInGame + 1;
+                        int nextPlayer = currentGame.getPositionInGame() + 1;
                         if(nextPlayer > currentGame.getNumberOfPlayers()){
                             nextPlayer = 1;
                         }
-                        String newMessage = nextPlayer + ";;" + playerPositionInGame + ";;" + turnCompetedParts[0] + ";;" + turnCompetedParts[1];
+                        String newMessage = nextPlayer + ";;" + currentGame.getPositionInGame() + ";;" + turnCompetedParts[0] + ";;" + turnCompetedParts[1];
                         sendToInGamePlayers("players_turn::",newMessage, false);
-                        //UPDATE DB with new player turn
-
-                        //SEND New turn to players in game
                         break;
                     case "roll_dices":
                         sendToMyMessageQueue("rolled_dices::", rollDices());
+                        //sendToMyMessageQueue("rolled_dices::", "3;;3;;6;;6;;6");
+                        break;
+                    case "player_completed_game":
+                        currentGame.increasePlayersCompletedGame();
+                        if(currentGame.getNumberOfPlayers() - currentGame.getPlayersCompletedGame() == 0){
+                            sendToInGamePlayers("game_completed::", "na", true);
+                        }else{
+                            sendToInGamePlayers("player_completed_game::", "na", false);
+                        }
                         break;
                 }
                 Thread.sleep(100);

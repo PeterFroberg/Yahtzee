@@ -1,5 +1,6 @@
 package peter;
 
+import javax.print.DocFlavor;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -14,9 +15,13 @@ import java.util.concurrent.TimeUnit;
 
 public class Yatzy extends JPanel implements Runnable {
 
-    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
-            "1 pair", "2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+    private static final String[] LABELS = {"Aeces", "Twos", "Upper score", "Upper Bonus", "Upper total",
+            "Chance", "YATZY",
             "Grand total"};
+
+//    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
+//            "1 pair", "2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+//            "Grand total"};
 
     private ArrayList<String> unUsedScoreFields = new ArrayList<>();
     // private ArrayList<String> usedScoreFields = new ArrayList<>();
@@ -291,9 +296,11 @@ public class Yatzy extends JPanel implements Runnable {
         int pair1Sum = 0;
         for (int i = 5; i >= 0; i--) {
             int occurrences = occurrencesOfDices.get(i);
-            if (pair1Sum == 0 && unUsedScoreFields.contains("1 pair") && occurrences > 1) {
+            if (pair1Sum == 0 && occurrences > 1) {
                 pair1Sum = (i + 1) * 2;
-                addCalculatedScore("1 pair", pair1Sum);
+                if(unUsedScoreFields.contains("1 pair")) {
+                    addCalculatedScore("1 pair", pair1Sum);
+                }
             }
             if (pair1Sum != 0 && unUsedScoreFields.contains("2 pairs") && occurrences > 1) {
                 if (!((i + 1 == (pair1Sum / 2)) && !(occurrences > 3))) {
@@ -323,28 +330,32 @@ public class Yatzy extends JPanel implements Runnable {
 
     private void checkForCombinations(ArrayList<Integer> occurrencesOfDices) {
         //Check Full house
-        if (calculatedScores.containsKey("3 of a kind")) {
-            int tripletIndex = dices.indexOf(3);
-            int pairIndex = dices.indexOf(2);
+        ArrayList<Integer> sortedOccurences = new ArrayList<>(occurrencesOfDices);
+        Collections.sort(sortedOccurences);
+        if (unUsedScoreFields.contains("Full house") && sortedOccurences.get(5) == 3 && sortedOccurences.get(4) == 2) {
+            int tripletIndex = occurrencesOfDices.indexOf(3);
+            int pairIndex = occurrencesOfDices.indexOf(2);
             if (pairIndex != -1) {
                 int sum = ((tripletIndex + 1) * 3) + ((pairIndex + 1) * 2);
                 addCalculatedScore("Full house", sum);
             }
         }
         //Check sm straight
-        if (occurrencesOfDices.get(0) == 1 &&
+        if (unUsedScoreFields.contains("Sm Straight") && occurrencesOfDices.get(0) == 1 &&
                 occurrencesOfDices.get(1) == 1 &&
                 occurrencesOfDices.get(2) == 1 &&
-                occurrencesOfDices.get(3) == 1) {
+                occurrencesOfDices.get(3) == 1 &&
+                occurrencesOfDices.get(4) == 1) {
             addCalculatedScore("Sm Straight", 15);
         }
 
         //Check lg straight
-        if (occurrencesOfDices.get(1) == 1 &&
+        if (unUsedScoreFields.contains("Lg Straight") && occurrencesOfDices.get(1) == 1 &&
                 occurrencesOfDices.get(2) == 1 &&
                 occurrencesOfDices.get(3) == 1 &&
-                occurrencesOfDices.get(4) == 1) {
-            addCalculatedScore("Sm Straight", 20);
+                occurrencesOfDices.get(4) == 1 &&
+                occurrencesOfDices.get(5) == 1) {
+            addCalculatedScore("Lg Straight", 20);
         }
         //add Chance
         if (unUsedScoreFields.contains("Chance")) {
@@ -397,10 +408,9 @@ public class Yatzy extends JPanel implements Runnable {
         }
         if (i < 6) {
             updateUpperTotals(score, playerNumber);
-        } else if (i < 12) {
+        } else {
             updateLowerTotals(score, playerNumber);
         }
-
     }
 
     private void updateUsedScoreFields(String scoreFileld) {
@@ -424,6 +434,41 @@ public class Yatzy extends JPanel implements Runnable {
             updateUsedScoreFields(choice);
         }
         updateTotals(choice, score, playerNumber);
+        if(unUsedScoreFields.size() < 1){
+            sendMessage("player_completed_game::na");
+            game.increasePlayersCompletedGame();
+        }
+    }
+
+    private void showWinner(){
+        int winner = 1;
+        int highestScore = 0;
+        String winnerText = "";
+
+        ArrayList<Integer> finalResult = new ArrayList<>();
+        switch (game.getNumberOfPlayers()){
+            case 4:
+                finalResult.add(Integer.parseInt(scoreBoardMap.get("P4Grand total").getText()));
+            case 3:
+                finalResult.add(Integer.parseInt(scoreBoardMap.get("P3Grand total").getText()));
+            case 2:
+                finalResult.add(Integer.parseInt(scoreBoardMap.get("P2Grand total").getText()));
+                finalResult.add(Integer.parseInt(scoreBoardMap.get("P1Grand total").getText()));
+        }
+        Collections.reverse(finalResult);
+        for(int i = 0; i < finalResult.size(); i++){
+            if(finalResult.get(i) > highestScore){
+                highestScore = finalResult.get(i);
+                winner = i + 1;
+            }
+        }
+
+        if(winner == 1){
+            winnerText = "YOU";
+        }else{
+            winnerText = "player " + winner;
+        }
+        JOptionPane.showMessageDialog(this, "The winner is " + winnerText + " with a score of " + highestScore + "!");
     }
 
     private void uncheckDices() {
@@ -436,19 +481,22 @@ public class Yatzy extends JPanel implements Runnable {
 
     private void saveScore(boolean strikeOut) {
         int score;
-        String choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
+        String choice;
+
         if (strikeOut) {
+            choice = Objects.requireNonNull(comboBoxStikeOutOptions.getSelectedItem()).toString();
             score = 0;
         } else {
+            choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
             score = calculatedScores.get(choice);
         }
+
+        sendMessage("turn_completed::" + choice + ";;" + score);
         updateScoreBoard(choice, score, positionInGame);
         buttonSaveResult.setEnabled(false);
         buttonRollDices.setEnabled(false);
         uncheckDices();
         displayNewDices(new String[]{"-", "-", "-", "-", "-"});
-        sendMessage("turn_completed::" + choice + ";;" + score);
-
     }
 
     private void saveDices() {
@@ -888,11 +936,9 @@ public class Yatzy extends JPanel implements Runnable {
                     //GÖR OM TILL CASE/SWITCH
                     switch (messageCode) {
                         case "chatt":
-                            //jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + message);
                             jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + messageParts[0]);
                             break;
                         case "new_user":
-                            //String[] newUserParts = message.split(";;");
                             if (!messageParts[0].equals("-1")) {
                                 player.setID(Integer.valueOf(messageParts[0]));
                                 player.setName(jTextFilednewUserInputName.getText());
@@ -902,7 +948,6 @@ public class Yatzy extends JPanel implements Runnable {
                             }
                             break;
                         case "login_user":
-                            //String[] loginUserParts = message.split(";;");
                             if (!messageParts[0].equals("-1")) {
                                 player.setID(Integer.valueOf(messageParts[0]));
                                 player.setName(messageParts[1]);
@@ -912,16 +957,16 @@ public class Yatzy extends JPanel implements Runnable {
                             }
                             break;
                         case "invitations":
-                            //String[] messageParts = message.split(";;");
                             positionInGame = Integer.parseInt(messageParts[0]);
-                            JOptionPane.showMessageDialog(this, messageParts[1]);
+                            game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
+                            JOptionPane.showMessageDialog(this, messageParts[2]);
                             buttonSendChat.setEnabled(true);
                             break;
                         case "player_added_to_game":
-                            //String[] messageParts = message.split(";;");
                             positionInGame = Integer.parseInt(messageParts[0]);
+                            game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
                             buttonSendChat.setEnabled(true);
-                            JOptionPane.showMessageDialog(this, messageParts[1]);
+                            JOptionPane.showMessageDialog(this, messageParts[2]);
                             break;
                         case "game_started":
                             if (positionInGame != 1) {
@@ -931,19 +976,23 @@ public class Yatzy extends JPanel implements Runnable {
                             }
                             break;
                         case "players_turn":
-                            //String[] messageParts = message.split(";;");
                             int score = Integer.parseInt(messageParts[3]);
                             int playerNumber = Integer.parseInt(messageParts[1]);
-                            if (messageParts[0].equals(String.valueOf(positionInGame))) {
+                            if (messageParts[0].equals(String.valueOf(positionInGame)) && unUsedScoreFields.size()>0) {
                                 playTurn();
                             }
                             updateScoreBoard(messageParts[2], score, playerNumber);
 
                             break;
                         case "rolled_dices":
-                            //String[] rolledDicesParts = message.split(";");
                             dices.clear();
                             displayNewDices(messageParts);
+                            break;
+                        case "player_completed_game":
+                            game.increasePlayersCompletedGame();
+                            break;
+                        case "game_completed":
+                            showWinner();
                             break;
 
                     }

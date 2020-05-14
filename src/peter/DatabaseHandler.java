@@ -147,6 +147,20 @@ public class DatabaseHandler {
         return playerAdded;
     }
 
+    public int getNumberOfPlayersInGame(int gameID){
+        try {
+            sqlStatement = dbConnection.prepareStatement("SELECT numberOfPlayers FROM games Where ID = ?");
+            sqlStatement.setInt(1, gameID);
+            ResultSet resultSet = sqlStatement.executeQuery();
+            if(resultSet.next()){
+                return resultSet.getInt("numberOfPlayers");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     public boolean checkGameStarted(int gameId){
         try {
             sqlStatement = dbConnection.prepareStatement("SELECT * FROM games WHERE ID = ?");

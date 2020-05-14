@@ -1,12 +1,12 @@
 package peter;
 
-import java.awt.*;
 import java.util.ArrayList;
 
 public class Game {
     private int ID = 0;
-    private int possiotionInGame = -1;
+    private int positionInGame = -1;
     private int numberOfPlayers = 0;
+    private int playersCompletedGame = 0;
     private int currentTurn = 0;
     private boolean active = false;
     private boolean myturn = false;
@@ -47,12 +47,12 @@ public class Game {
         return otherPlayers.get(index);
     }
 
-    public int getPossiotionInGame() {
-        return possiotionInGame;
+    public int getPositionInGame() {
+        return positionInGame;
     }
 
-    public void setPossiotionInGame(int possiotionInGame) {
-        this.possiotionInGame = possiotionInGame;
+    public void setPositionInGame(int positionInGame) {
+        this.positionInGame = positionInGame;
     }
 
     public int getNumberOfPlayers() {
@@ -69,5 +69,13 @@ public class Game {
 
     public void setCurrentTurn(int currentTurn) {
         this.currentTurn = currentTurn;
+    }
+
+    public int getPlayersCompletedGame() {
+        return playersCompletedGame;
+    }
+
+    public void increasePlayersCompletedGame() {
+        this.playersCompletedGame++;
     }
 }
