@@ -136,30 +136,29 @@ public class DatabaseHandler {
      * @return returns a text response for the user GUI
      */
     public String joinGame(int playerID, String playerEmail, int gameID) {
-        //CHECK invitation in invited tabel
-        String playerAdded = "";
+        String playerAdded;
+        //CHECK invitation in invited table
         if (checkPlayerInvitedToGame(gameID, playerEmail)) {
-            //IF invited //add Player to game
             playerAdded = addPlayerToGame(gameID, playerID);
         } else {
-            playerAdded = "0;;0;;Unable to add you to the game! please check invitation for game ID";
+            playerAdded = "-1;;0;;Unable to add you to the game! please check invitation for game ID";
         }
         return playerAdded;
     }
 
-    public int getNumberOfPlayersInGame(int gameID){
-        try {
-            sqlStatement = dbConnection.prepareStatement("SELECT numberOfPlayers FROM games Where ID = ?");
-            sqlStatement.setInt(1, gameID);
-            ResultSet resultSet = sqlStatement.executeQuery();
-            if(resultSet.next()){
-                return resultSet.getInt("numberOfPlayers");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
+//    public int getNumberOfPlayersInGame(int gameID){
+//        try {
+//            sqlStatement = dbConnection.prepareStatement("SELECT numberOfPlayers FROM games Where ID = ?");
+//            sqlStatement.setInt(1, gameID);
+//            ResultSet resultSet = sqlStatement.executeQuery();
+//            if(resultSet.next()){
+//                return resultSet.getInt("numberOfPlayers");
+//            }
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//        return -1;
+//    }
 
     public boolean checkGameStarted(int gameId){
         try {
@@ -213,7 +212,7 @@ public class DatabaseHandler {
     public String addPlayerToGame(int gameID, int playerID) {
         int playerPosition = getMaxPositionInGame(gameID) + 1;
         int expectedNumberOfPlayersInGame = getExpectedNumberOfPlayersInGame(gameID);
-        String allPlayersConnected = "";
+        String playerConnected;
         try {
             sqlStatement = dbConnection.prepareStatement("INSERT INTO playinggame (playerID, positionInGame, gameId) VALUES(?,?,?)");
             sqlStatement.setInt(1, playerID);
@@ -222,22 +221,20 @@ public class DatabaseHandler {
             sqlStatement.executeUpdate();
             if (expectedNumberOfPlayersInGame - playerPosition == 0) {
                 setGameState(gameID, "start");
-                allPlayersConnected = "1;;" + String.valueOf(playerPosition) + ";;You are added to the game, All players connected, the game will soon start";
+                playerConnected = expectedNumberOfPlayersInGame + ";;" + playerPosition + ";;You are added to the game, All players connected, the game will soon start";
             } else {
                 setGameState(gameID, "waiting for players");
-                allPlayersConnected = "0;;" + String.valueOf(playerPosition) + ";;You are added to the game, please wait for more players to connect.";
+                playerConnected = expectedNumberOfPlayersInGame + ";;" + playerPosition + ";;You are added to the game, please wait for more players to connect.";
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
-            allPlayersConnected = "0;;Unable to add you to the game!";
+            playerConnected = "-1;;0;;Unable to add you to the game!";
         } finally {
             closeSQLStatement();
         }
-        return allPlayersConnected;
+        return playerConnected;
     }
-
-
 
     public void setGameState(int gameID, String newGameState){
         try {
@@ -249,8 +246,6 @@ public class DatabaseHandler {
             e.printStackTrace();
         }
     }
-
-
 
     /**
      * Checking if the player was invited to the specified game

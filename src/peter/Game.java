@@ -7,10 +7,7 @@ public class Game {
     private int positionInGame = -1;
     private int numberOfPlayers = 0;
     private int playersCompletedGame = 0;
-    private int currentTurn = 0;
-    private boolean active = false;
-    private boolean myturn = false;
-    private ArrayList<String> otherPlayers =new ArrayList<>();
+    private boolean gameStarted = false;
 
     Game(){
     }
@@ -23,28 +20,12 @@ public class Game {
         this.ID = ID;
     }
 
-    public boolean isActive() {
-        return active;
+    public boolean isGameStarted() {
+        return gameStarted;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public boolean isMyturn() {
-        return myturn;
-    }
-
-    public void setMyturn(boolean myturn) {
-        this.myturn = myturn;
-    }
-
-    public void addPlayer(String playerName){
-        otherPlayers.add(playerName);
-    }
-
-    public String getPlayer(int index){
-        return otherPlayers.get(index);
+    public void setGameStarted(boolean active) {
+        this.gameStarted = active;
     }
 
     public int getPositionInGame() {
@@ -61,14 +42,6 @@ public class Game {
 
     public void setNumberOfPlayers(int numberOfPlayers) {
         this.numberOfPlayers = numberOfPlayers;
-    }
-
-    public int getCurrentTurn() {
-        return currentTurn;
-    }
-
-    public void setCurrentTurn(int currentTurn) {
-        this.currentTurn = currentTurn;
     }
 
     public int getPlayersCompletedGame() {

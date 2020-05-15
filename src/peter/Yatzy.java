@@ -1,7 +1,7 @@
 package peter;
 
-import javax.print.DocFlavor;
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -15,30 +15,27 @@ import java.util.concurrent.TimeUnit;
 
 public class Yatzy extends JPanel implements Runnable {
 
-    private static final String[] LABELS = {"Aeces", "Twos", "Upper score", "Upper Bonus", "Upper total",
-            "Chance", "YATZY",
-            "Grand total"};
-
-//    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
-//            "1 pair", "2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+//    private static final String[] LABELS = {"Aeces", "Twos", "Upper score", "Upper Bonus", "Upper total",
+//            "Chance", "YATZY",
 //            "Grand total"};
 
+    private static final String[] LABELS = {"Aeces", "Twos", "Threes", "Fours", "Fives", "Sixes", "Upper score", "Upper Bonus", "Upper total",
+            "1 pair", "2 pairs", "3 of a kind", "4 of a kind", "Full house", "Sm Straight", "Lg Straight", "Chance", "YATZY",
+            "Grand total"};
+
     private ArrayList<String> unUsedScoreFields = new ArrayList<>();
-    // private ArrayList<String> usedScoreFields = new ArrayList<>();
 
     private static final int MAX_NUMBER_OF_DICE_ROLLS = 3;
+    private final static String DEFAULTHOST = "127.0.0.1";
+    private final static int DEFAULTPORT = 2000;
 
-    private int positionInGame = 0;
-    private int nuberOfDicesRolled = 1;
+    private int numberOfDicesRolled = 1;
     private ArrayList<Integer> dices = new ArrayList<>();
     private Map<String, Integer> calculatedScores = new HashMap<String, Integer>();
 
     private Player player = new Player();
     private Game game = new Game();
     private Map<String, JTextField> scoreBoardMap = new HashMap<String, JTextField>();
-
-    private final static String DEFAULTHOST = "127.0.0.1";
-    private final static int DEFAULTPORT = 2000;
 
     private final BufferedReader socketReader;
     private final PrintWriter socketWriter;
@@ -50,8 +47,6 @@ public class Yatzy extends JPanel implements Runnable {
 
     private static JMenuBar menuBar = new JMenuBar();
 
-    //private static LinkedBlockingQueue<String> serverMessages = new LinkedBlockingQueue<String>();
-
     /**
      * Create GUI components for the application
      */
@@ -61,12 +56,22 @@ public class Yatzy extends JPanel implements Runnable {
     private JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
     private JMenuItem menuItemLogin = new JMenuItem("Login");
     private JMenuItem menuItemJoinGame = new JMenuItem("Join game");
-    private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
+    //private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
     private JMenuItem menuItemExit = new JMenuItem("Exit");
 
+
+
     //Textareas
-    private static JTextArea jTextAreaTextAreaChatArea = new JTextArea("Detta är chat meddelanden");
-    private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt");
+    private static JTextArea jTextAreaChatArea = new JTextArea("Detta är chat meddelanden", 20,15);
+    private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt", 20,15);
+
+    private static JTextPane jTextPaneChatArea = new JTextPane();
+
+
+
+    //ScrollPane
+    JScrollPane jScrollPaneChatArea = new JScrollPane(jTextPaneChatArea);
+
 
     //Textfields and checkboxes
     private JTextField jTextFieldDiceResult1 = new JTextField("-");
@@ -105,23 +110,16 @@ public class Yatzy extends JPanel implements Runnable {
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
 
-        //Fill unUsedScoreFieldsArray
-        unUsedScoreFields.addAll(Arrays.asList(LABELS));
-        //Remove calculatedFields
-        unUsedScoreFields.remove("Upper score");
-        unUsedScoreFields.remove("Upper Bonus");
-        unUsedScoreFields.remove("Upper total");
-        unUsedScoreFields.remove("Grand total");
+        resetScoreBoard(false);
 
         //Create Menu
         menuBar = createMenuBar();
-        //Layout on frame
+        //Set Layout for the frame
         setLayout(new BorderLayout());
 
         //Add panels to the frame
         add(mainTopPanel(), BorderLayout.NORTH);
         add(mainRightPanel(), BorderLayout.EAST);
-        //add(mainCenterPanel(), BorderLayout.CENTER);
         add(scoreBoardPanel(), BorderLayout.CENTER);
     }
 
@@ -131,7 +129,7 @@ public class Yatzy extends JPanel implements Runnable {
      * @param value - true/false
      */
     private void enableOptions(boolean value) {
-        menuItemScoreBoard.setEnabled(value);
+        //menuItemScoreBoard.setEnabled(value);
         menuItemInvitePlayers.setEnabled(value);
         menuItemJoinGame.setEnabled(value);
 
@@ -151,7 +149,7 @@ public class Yatzy extends JPanel implements Runnable {
                 player.setID(0);
                 player.setName("");
                 player.setEmail("");
-                setEnabled(false);
+                //setEnabled(false);
 
                 sendMessage("login::" + jTextFieldLoginName.getText() + ";;" + jTextFieldLoginPassword.getText());
                 while (player.getID() == 0) {
@@ -162,15 +160,13 @@ public class Yatzy extends JPanel implements Runnable {
                     }
                 }
                 if (player.getID() == -1) {
-                    JOptionPane.showMessageDialog(this, "Unable to Login! Either User dont exist, wrong username or wrong password!");
+                    JOptionPane.showMessageDialog(this, "Unable to Login! Either User don't exist, wrong username or wrong password entered!");
                 } else {
                     jTextFieldLoginPassword.setText("");
                     enableOptions(true);
                     endLogin = true;
                     JOptionPane.showMessageDialog(this, "Welcom back " + player.getName() + "!");
                 }
-
-
             } else {
                 endLogin = true;
             }
@@ -246,20 +242,41 @@ public class Yatzy extends JPanel implements Runnable {
 
     }
 
+    private void resetScoreBoard(boolean clearScoreBoard){
+        //Fill unUsedScoreFieldsArray
+        unUsedScoreFields.addAll(Arrays.asList(LABELS));
+        //Remove calculatedFields
+        unUsedScoreFields.remove("Upper score");
+        unUsedScoreFields.remove("Upper Bonus");
+        unUsedScoreFields.remove("Upper total");
+        unUsedScoreFields.remove("Grand total");
+
+        //check if there is previous scores and if so clear scoreboard
+        if(clearScoreBoard && game.isGameStarted()) {
+            for (String l : LABELS) {
+                for (int i = 1; i <= game.getNumberOfPlayers(); i++) {
+                    JTextField temp = scoreBoardMap.get("P" + i + l);
+                    temp.setText("");
+                }
+            }
+        }
+    }
+
+    //Game play functions
     private void playTurn() {
         buttonRollDices.setEnabled(true);
-        nuberOfDicesRolled = 1;
+        numberOfDicesRolled = 1;
         JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
     }
 
     private void rollDices() {
-        if (nuberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
+        if (numberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
             sendMessage("roll_dices::na");
             buttonSaveResult.setEnabled(true);
-            if (nuberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS) {
+            if (numberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS) {
                 buttonRollDices.setEnabled(false);
             }
-            nuberOfDicesRolled++;
+            numberOfDicesRolled++;
         } else {
             buttonRollDices.setEnabled(false);
         }
@@ -419,12 +436,12 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     private void updateScoreBoard(String choice, int score, int playerNumber) {
-        if (playerNumber == positionInGame) {
+        if (playerNumber == game.getPositionInGame()) {
             playerNumber = 1;
 
         } else {
-            if (playerNumber < positionInGame) {
-                playerNumber = positionInGame;
+            if (playerNumber < game.getPositionInGame()) {
+                playerNumber = game.getPositionInGame();
             }
         }
 
@@ -492,7 +509,7 @@ public class Yatzy extends JPanel implements Runnable {
         }
 
         sendMessage("turn_completed::" + choice + ";;" + score);
-        updateScoreBoard(choice, score, positionInGame);
+        updateScoreBoard(choice, score, game.getPositionInGame());
         buttonSaveResult.setEnabled(false);
         buttonRollDices.setEnabled(false);
         uncheckDices();
@@ -559,6 +576,9 @@ public class Yatzy extends JPanel implements Runnable {
     private JPanel mainTopPanel() {
         JPanel mainTopPanel = new JPanel(new GridLayout(2, 6));
         mainTopPanel.add(new JLabel("Dices"));
+//        ImageIcon dice1Icon = new ImageIcon("C:/Users/Peter/IdeaProjects/Yahtzee/src/peter/aec.png");
+//        mainTopPanel.add(new JLabel(dice1Icon));
+
         jTextFieldDiceResult1.setEditable(false);
         jTextFieldDiceResult1.setHorizontalAlignment(JTextField.CENTER);
         mainTopPanel.add(jTextFieldDiceResult1);
@@ -597,7 +617,7 @@ public class Yatzy extends JPanel implements Runnable {
 
         mainTopPanel.setMinimumSize(new Dimension(0, 50));
         mainTopPanel.setPreferredSize(mainTopPanel.getMinimumSize());
-        mainTopPanel.setBorder(BorderFactory.createLineBorder(Color.orange));
+        mainTopPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
 
         buttonSaveResult.setEnabled(false);
         buttonSaveResult.addActionListener(actionEvent -> saveDices());
@@ -612,6 +632,7 @@ public class Yatzy extends JPanel implements Runnable {
      * @return - returns the created JPanel
      */
     private JPanel mainRightPanel() {
+        //JPanel rightTopPanel = new JPanel(new BorderLayout());
         JPanel rightTopPanel = new JPanel(new BorderLayout());
         JPanel rightMiddelPanel = new JPanel(new BorderLayout());
         JPanel rightBottomPanel = new JPanel();
@@ -621,11 +642,20 @@ public class Yatzy extends JPanel implements Runnable {
         mainRightPanel.add(rightMiddelPanel, BorderLayout.CENTER);
         mainRightPanel.add(rightBottomPanel, BorderLayout.SOUTH);
 
-        jTextAreaTextAreaChatArea.setLineWrap(true);
-        jTextAreaTextAreaChatArea.setWrapStyleWord(true);
-        rightTopPanel.add(jTextAreaTextAreaChatArea);
+
+        //jTextPaneChatArea.setEditable(false);
+        //jTextPaneChatArea.getCaret().setVisible(true);
+        //jTextAreaChatArea.setLineWrap(true);
+        //jTextAreaChatArea.setWrapStyleWord(true);
+
+        DefaultCaret caret = (DefaultCaret)jTextPaneChatArea.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
+        jScrollPaneChatArea.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        rightTopPanel.add(jScrollPaneChatArea);
 
         //Populate rightmiddel panel
+
         jTextAreaChatInput.setLineWrap(true);
         jTextAreaChatInput.setWrapStyleWord(true);
         rightMiddelPanel.add(jTextAreaChatInput);
@@ -646,10 +676,10 @@ public class Yatzy extends JPanel implements Runnable {
         rightMiddelPanel.setPreferredSize((rightMiddelPanel.getMinimumSize()));
         rightBottomPanel.setPreferredSize(rightBottomPanel.getMinimumSize());
 
-        mainRightPanel.setBorder(BorderFactory.createLineBorder(Color.red));
-        rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.black));
-        rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.cyan));
-        rightBottomPanel.setBorder(BorderFactory.createLineBorder(Color.yellow));
+        mainRightPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+        rightTopPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+        rightMiddelPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+        rightBottomPanel.setBorder(BorderFactory.createLineBorder(Color.lightGray));
 
         return mainRightPanel;
     }
@@ -853,8 +883,8 @@ public class Yatzy extends JPanel implements Runnable {
         menuItemJoinGame.setEnabled(false);
         menuItemJoinGame.addActionListener(actionEvent -> joinGame());
 
-        menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK)));
-        menuItemScoreBoard.setEnabled(false);
+//        menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK)));
+//        menuItemScoreBoard.setEnabled(false);
 
         menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)));
         menuItemExit.addActionListener(actionEvent -> System.exit(0));
@@ -863,7 +893,7 @@ public class Yatzy extends JPanel implements Runnable {
         menu.add(menuItemLogin);
         menu.add(menuItemInvitePlayers);
         menu.add(menuItemJoinGame);
-        menu.add(menuItemScoreBoard);
+        //menu.add(menuItemScoreBoard);
         menu.add(menuItemExit);
 
         return menuBar;
@@ -911,6 +941,26 @@ public class Yatzy extends JPanel implements Runnable {
         frame.setVisible(true);
     }
 
+
+
+
+    private void appendToPane(JTextPane tp, String msg, Color c)
+    {
+        StyleContext sc = StyleContext.getDefaultStyleContext();
+        AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
+
+        aset = sc.addAttribute(aset, StyleConstants.FontFamily, "Lucida Console");
+        aset = sc.addAttribute(aset, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
+
+        int len = tp.getDocument().getLength();
+        tp.setCaretPosition(len);
+        tp.setCharacterAttributes(aset, false);
+        tp.replaceSelection(msg);
+    }
+
+
+
+
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -936,7 +986,13 @@ public class Yatzy extends JPanel implements Runnable {
                     //GÖR OM TILL CASE/SWITCH
                     switch (messageCode) {
                         case "chatt":
-                            jTextAreaTextAreaChatArea.setText(jTextAreaTextAreaChatArea.getText() + "\n" + messageParts[0]);
+                            String sender[] = messageParts[0].split(":");
+                            if(sender[0].equals(player.getName())) {
+                                appendToPane(jTextPaneChatArea, "\n" + messageParts[0], Color.red);
+                            }else{
+                                appendToPane(jTextPaneChatArea, "\n" + messageParts[0], Color.black);
+                            }
+
                             break;
                         case "new_user":
                             if (!messageParts[0].equals("-1")) {
@@ -957,19 +1013,24 @@ public class Yatzy extends JPanel implements Runnable {
                             }
                             break;
                         case "invitations":
-                            positionInGame = Integer.parseInt(messageParts[0]);
+                            game.setPositionInGame(Integer.parseInt(messageParts[0]));
                             game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
                             JOptionPane.showMessageDialog(this, messageParts[2]);
                             buttonSendChat.setEnabled(true);
+                            resetScoreBoard(true);
                             break;
                         case "player_added_to_game":
-                            positionInGame = Integer.parseInt(messageParts[0]);
+                            game.setPositionInGame(Integer.parseInt(messageParts[0]));
                             game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
-                            buttonSendChat.setEnabled(true);
+                            if(game.getPositionInGame() != -1) {
+                                buttonSendChat.setEnabled(true);
+                                game.setGameStarted(true);
+                                resetScoreBoard(true);
+                            }
                             JOptionPane.showMessageDialog(this, messageParts[2]);
                             break;
                         case "game_started":
-                            if (positionInGame != 1) {
+                            if (game.getPositionInGame() != 1) {
                                 JOptionPane.showMessageDialog(this, messageParts[0]);
                             } else {
                                 playTurn();
@@ -978,11 +1039,10 @@ public class Yatzy extends JPanel implements Runnable {
                         case "players_turn":
                             int score = Integer.parseInt(messageParts[3]);
                             int playerNumber = Integer.parseInt(messageParts[1]);
-                            if (messageParts[0].equals(String.valueOf(positionInGame)) && unUsedScoreFields.size()>0) {
+                            if (messageParts[0].equals(String.valueOf(game.getPositionInGame())) && unUsedScoreFields.size()>0) {
                                 playTurn();
                             }
                             updateScoreBoard(messageParts[2], score, playerNumber);
-
                             break;
                         case "rolled_dices":
                             dices.clear();
@@ -994,7 +1054,6 @@ public class Yatzy extends JPanel implements Runnable {
                         case "game_completed":
                             showWinner();
                             break;
-
                     }
                 }
                 Thread.sleep(100);
