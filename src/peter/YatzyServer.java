@@ -31,7 +31,6 @@ public class YatzyServer implements Runnable {
     private YatzyServer(Socket clientSocket, LinkedBlockingQueue<String> playerMessageQueue) {
         this.clientSocket = clientSocket;
         this.playerMessageQueue = playerMessageQueue;
-        //YahtzeeServer.gameMessagesQueues = gameMessageQueues;
     }
 
     private void createNewUser(String message){
@@ -115,20 +114,13 @@ public class YatzyServer implements Runnable {
     }
 
     private void createCommnunicationForGame() {
-        //Create new gameMessagingArray
-        //CopyOnWriteArrayList<LinkedBlockingQueue<String>> newGameMessagingQueuesArray = new CopyOnWriteArrayList<>();
-        //Add clientsMessageArray to game
         gameMessagesQueues = new CopyOnWriteArrayList<>();
         gameMessagesQueues.add(playerMessageQueue);
-        //gameMessagesQueues.add(playerMessageQueue);
-        //Add gameMessagingArray to server MessagingArray
-        //gamesMessagingQueues.put(gameID, gameMessagesQueues);
         gamesMessagingQueues.put(currentGame.getID(), gameMessagesQueues);
     }
 
     private void joinCommunicationForGame() {
         gameMessagesQueues = gamesMessagingQueues.get(currentGame.getID());
-        //CopyOnWriteArrayList<LinkedBlockingQueue<String>> messagingQueueArrayToJoin = gamesMessagingQueues.get(gameID);
         gameMessagesQueues.add(playerMessageQueue);
     }
 
@@ -146,7 +138,6 @@ public class YatzyServer implements Runnable {
             }
             sendToMyMessageQueue("game_started::", "Game is started, Please wait for your turn");
             databaseHandler.setGameState(currentGame.getID(), "playing");
-            //playNextTurn(gameID);
             //databaseHandler.disconnectDatabase();
         }).start();
     }

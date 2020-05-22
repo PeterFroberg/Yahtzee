@@ -7,9 +7,7 @@ import java.awt.*;
 public class MainRightPanel extends JPanel {
 
     public JButton buttonSendChat = new JButton("Send");
-
     private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt", 20, 15);
-
     private static JTextPane jTextPaneChatArea = new JTextPane();
     JScrollPane jScrollPaneChatArea = new JScrollPane(jTextPaneChatArea);
 
