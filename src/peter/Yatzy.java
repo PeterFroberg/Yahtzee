@@ -2,8 +2,6 @@ package peter;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,43 +33,30 @@ public class Yatzy extends JPanel implements Runnable {
     private Player player = new Player();
     private Game game = new Game();
 
+    private static MenuBar menuBar = new MenuBar();
+
     private MainPanel mainPanel = new MainPanel();
     private MainRightPanel mainRightPanel = new MainRightPanel();
     private ScoreBoard scoreboard = new ScoreBoard();
+    private SaveResultPanel saveResultPanel = new SaveResultPanel();
 
     private final BufferedReader socketReader;
     private final PrintWriter socketWriter;
 
-    private static JMenuBar menuBar = new JMenuBar();
+
+    //private static JMenuBar menuBar = new JMenuBar();
 
     /**
      * Create GUI components for the application
      */
 
     //Menu items
-    private JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
-    private JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
-    private JMenuItem menuItemLogin = new JMenuItem("Login");
-    private JMenuItem menuItemJoinGame = new JMenuItem("Join game");
-    //private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
-    private JMenuItem menuItemExit = new JMenuItem("Exit");
-
-    //Textfields and checkboxes
-
-    private JTextField jTextFilednewUserInputName = new JTextField(45);
-    private JTextField jTextFieldnewUserInputEmail = new JTextField(45);
-    private JTextField newUserInputPassword = new JPasswordField(45);
-
-    private JTextField jTextFieldLoginName = new JTextField(45);
-    private JTextField jTextFieldLoginPassword = new JPasswordField(45);
-
-    private JTextField jTextFieldInvitePlayers = new JTextField(45);
-
-    private JTextField jTextFieldJoinGame = new JTextField(15);
-
-    //Dropdowns
-    private JComboBox<String> comboBoxSaveOptions = new JComboBox<>(new String[]{});
-    private JComboBox<String> comboBoxStikeOutOptions = new JComboBox<>(new String[]{});
+//    private JMenuItem menuItemCreateNewPlayer = new JMenuItem("Create new player");
+//    private JMenuItem menuItemInvitePlayers = new JMenuItem("Invite players");
+//    private JMenuItem menuItemLogin = new JMenuItem("Login");
+//    private JMenuItem menuItemJoinGame = new JMenuItem("Join game");
+//    //private JMenuItem menuItemScoreBoard = new JMenuItem("My Scoreboard");
+//    private JMenuItem menuItemExit = new JMenuItem("Exit");
 
     public Yatzy(BufferedReader socketReader, PrintWriter socketWriter) {
 
@@ -79,9 +64,16 @@ public class Yatzy extends JPanel implements Runnable {
         this.socketWriter = socketWriter;
 
         //Create Menu
-        menuBar = createMenuBar();
+        //menuBar = createMenuBar();
         //Set Layout for the frame
         setLayout(new BorderLayout());
+
+        //Set actionListners to menu items
+        menuBar.menuItemCreateNewPlayer.addActionListener(actionEvent -> createNewUser());
+        menuBar.menuItemLogin.addActionListener(actionEvent -> loginplayer());
+        menuBar.menuItemInvitePlayers.addActionListener(actionEvent -> invitePlayer());
+        menuBar.menuItemJoinGame.addActionListener(actionEvent -> joinGame());
+        menuBar.menuItemExit.addActionListener(actionEvent -> System.exit(0));
 
         //Set actionlistners on buttons
         mainPanel.buttonRollDices.addActionListener(actionEvent -> rollDices());
@@ -100,10 +92,11 @@ public class Yatzy extends JPanel implements Runnable {
      *
      * @param value - true/false
      */
-    private void enableOptions(boolean value) {
+    private void enableMenuOptions(boolean value) {
         //menuItemScoreBoard.setEnabled(value);
-        menuItemInvitePlayers.setEnabled(value);
-        menuItemJoinGame.setEnabled(value);
+        menuBar.enabelMenuOptions(value);
+//        menuItemInvitePlayers.setEnabled(value);
+//        menuItemJoinGame.setEnabled(value);
 
         //buttonSendChat.setEnabled(value);
     }
@@ -112,9 +105,10 @@ public class Yatzy extends JPanel implements Runnable {
      * Login player on the server, shows a dialogbox for signing in
      */
     private void loginplayer() {
+        LoginPanel loginPanel = new LoginPanel();
         boolean endLogin = false;
         while (!endLogin) {
-            int buttonPressed = JOptionPane.showConfirmDialog(null, loginPanel(), "User Login"
+            int buttonPressed = JOptionPane.showConfirmDialog(null, loginPanel, "User Login"
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
@@ -123,7 +117,8 @@ public class Yatzy extends JPanel implements Runnable {
                 player.setEmail("");
                 //setEnabled(false);
 
-                sendMessage("login::" + jTextFieldLoginName.getText() + ";;" + jTextFieldLoginPassword.getText());
+
+                sendMessage("login::" + loginPanel.getLoginName() + ";;" + loginPanel.getLoginPassword());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -134,8 +129,8 @@ public class Yatzy extends JPanel implements Runnable {
                 if (player.getID() == -1) {
                     JOptionPane.showMessageDialog(this, "Unable to Login! Either User don't exist, wrong username or wrong password entered!");
                 } else {
-                    jTextFieldLoginPassword.setText("");
-                    enableOptions(true);
+                    loginPanel.setLoginPassword("");
+                    enableMenuOptions(true);
                     endLogin = true;
                     JOptionPane.showMessageDialog(this, "Welcom back " + player.getName() + "!");
                 }
@@ -151,14 +146,15 @@ public class Yatzy extends JPanel implements Runnable {
      * zero. If player ID is set to -1 the user already exits in the database
      */
     private void createNewUser() {
+        NewUserPanel newUserPanel = new NewUserPanel();
         boolean endUserInput = false;
         while (!endUserInput) {
             int buttonPressed = JOptionPane.showConfirmDialog(
-                    null, newUserPanel(), "New user Form : "
+                    null, newUserPanel, "New user Form : "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("new_user::" + jTextFilednewUserInputName.getText() + ";;" + jTextFieldnewUserInputEmail.getText() + ";;" + newUserInputPassword.getText());
+                sendMessage("new_user::" + newUserPanel.getNewUserName() + ";;" + newUserPanel.getNewUserEmail() + ";;" + newUserPanel.getNewUserPassword());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -169,10 +165,13 @@ public class Yatzy extends JPanel implements Runnable {
                 if (player.getID() == -1) {
                     JOptionPane.showMessageDialog(this, "User already exists! Use another email account");
                 } else {
-                    enableOptions(true);
+                    player.setName(newUserPanel.getName());
+                    player.setEmail(newUserPanel.getNewUserEmail());
+                    enableMenuOptions(true);
                 }
             }
             endUserInput = true;
+            newUserPanel.setNewUserPassword("");
         }
     }
 
@@ -186,28 +185,30 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     private void invitePlayer() {
+        InvitePlayerPanel invitePlayerPanel = new InvitePlayerPanel();
         boolean endInviteInput = false;
         while (!endInviteInput) {
             int buttonPressed = JOptionPane.showConfirmDialog(
-                    null, invitePlayerPanel(), "Invite players: "
+                    null, invitePlayerPanel, "Invite players: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("invite_players::" + player.getEmail() + ";" + player.getID() + ";" + jTextFieldInvitePlayers.getText());
+                sendMessage("invite_players::" + player.getEmail() + ";" + player.getID() + ";" + invitePlayerPanel.getInviteedPlayers());
             }
             endInviteInput = true;
         }
     }
 
     private void joinGame() {
+        JoinGamePanel joinGamePanel = new JoinGamePanel();
         boolean endJoinGame = false;
         while (!endJoinGame) {
             int buttonPressed = JOptionPane.showConfirmDialog(
-                    null, joinGamePanel(), "Join Game: "
+                    null, joinGamePanel, "Join Game: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("join_game::" + player.getID() + ";" + player.getEmail() + ";" + jTextFieldJoinGame.getText());
+                sendMessage("join_game::" + player.getID() + ";" + player.getEmail() + ";" + joinGamePanel.getJoinGame());
             }
             endJoinGame = true;
         }
@@ -352,7 +353,8 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     private void addCalculatedScore(String scoreField, int score) {
-        comboBoxSaveOptions.addItem(scoreField);
+        //comboBoxSaveOptions.addItem(scoreField);
+        saveResultPanel.addToSaveOptions(scoreField);
         calculatedScores.put(scoreField, score);
     }
 
@@ -416,10 +418,10 @@ public class Yatzy extends JPanel implements Runnable {
         String choice;
 
         if (strikeOut) {
-            choice = Objects.requireNonNull(comboBoxStikeOutOptions.getSelectedItem()).toString();
+            choice = saveResultPanel.getSelectedStrikeOutOption();
             score = 0;
         } else {
-            choice = Objects.requireNonNull(comboBoxSaveOptions.getSelectedItem()).toString();
+            choice = saveResultPanel.getSelectedSaveOption();
             score = calculatedScores.get(choice);
         }
 
@@ -435,21 +437,21 @@ public class Yatzy extends JPanel implements Runnable {
     private void saveDices() {
         //prepare enviroment
         calculatedScores.clear();
-        comboBoxSaveOptions.removeAllItems();
-        comboBoxStikeOutOptions.removeAllItems();
+        saveResultPanel.clearAllSaveOptions();
 
         checkSingels();
         checkCombinations();
 
         for (String s : unUsedScoreFields) {
             if (!calculatedScores.containsKey(s)) {
-                comboBoxStikeOutOptions.addItem(s);
+                saveResultPanel.addToStrikeOutOptions(s);
+                //comboBoxStikeOutOptions.addItem(s);
             }
         }
         Object[] options = {"Save score",
                 "Strike out",
                 "Cancel"};
-        int buttonpressed = JOptionPane.showOptionDialog(null, saveResultPanel(), "Save score", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
+        int buttonpressed = JOptionPane.showOptionDialog(null, saveResultPanel, "Save score", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
 
         switch (buttonpressed) {
             case JOptionPane.YES_OPTION:
@@ -462,165 +464,45 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     /**
-     * creates the Login panel and populates it with swing components
-     *
-     * @return - returns the created JPanel
-     */
-    private JPanel loginPanel() {
-        JPanel loginPanel = new JPanel();
-
-        JPanel leftLoginPanel = new JPanel();
-        leftLoginPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        leftLoginPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftLoginPanel.add(new JLabel("E-mail: "));
-        leftLoginPanel.add(new JLabel("Password: "));
-
-        JPanel centerLoginPanel = new JPanel();
-        centerLoginPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        centerLoginPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jTextFieldLoginName.addAncestorListener(new RequestFocusListener());
-        centerLoginPanel.add(jTextFieldLoginName);
-        centerLoginPanel.add(jTextFieldLoginPassword);
-
-        loginPanel.add(leftLoginPanel);
-        loginPanel.add(centerLoginPanel);
-
-        return loginPanel;
-    }
-
-    /**
-     * creates the New user panel and populates it with swing components
-     *
-     * @return - returns the created JPanel
-     */
-    private JPanel newUserPanel() {
-        JPanel newUserPanel = new JPanel();
-        JPanel leftNewUserPanel = new JPanel();
-        leftNewUserPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        leftNewUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        leftNewUserPanel.add(new JLabel("Namn: "));
-        leftNewUserPanel.add(new JLabel("Email: "));
-        leftNewUserPanel.add(new JLabel("Password"));
-
-
-        JPanel centerUserPanel = new JPanel();
-        centerUserPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        centerUserPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        centerUserPanel.add(jTextFilednewUserInputName);
-        jTextFilednewUserInputName.addAncestorListener(new RequestFocusListener());
-        centerUserPanel.add(jTextFieldnewUserInputEmail);
-        centerUserPanel.add(newUserInputPassword);
-
-        newUserPanel.add(leftNewUserPanel);
-        newUserPanel.add(centerUserPanel);
-
-
-        return newUserPanel;
-    }
-
-    private JPanel invitePlayerPanel() {
-        JPanel invitePanel = new JPanel();
-
-        JPanel leftInvitePanel = new JPanel();
-        leftInvitePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        leftInvitePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftInvitePanel.add(new JLabel("Invite players"));
-
-        JPanel centerInvitePanel = new JPanel();
-        centerInvitePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        centerInvitePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jTextFieldInvitePlayers.addAncestorListener(new RequestFocusListener());
-        centerInvitePanel.add(jTextFieldInvitePlayers);
-
-        invitePanel.add(leftInvitePanel);
-        invitePanel.add(centerInvitePanel);
-
-        return invitePanel;
-    }
-
-    private JPanel joinGamePanel() {
-        JPanel joinGamePanel = new JPanel();
-        JPanel leftJoinGamePanel = new JPanel();
-        leftJoinGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        leftJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftJoinGamePanel.add(new JLabel("Join game: "));
-
-        JPanel centerJoinGamePanel = new JPanel();
-        centerJoinGamePanel.setLayout(new GridLayout(2, 2, 5, 5));
-        centerJoinGamePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jTextFieldJoinGame.addAncestorListener(new RequestFocusListener());
-        centerJoinGamePanel.add(jTextFieldJoinGame);
-
-        joinGamePanel.add(leftJoinGamePanel);
-        joinGamePanel.add(centerJoinGamePanel);
-
-        return joinGamePanel;
-    }
-
-    private JPanel saveResultPanel() {
-        JPanel saveResultPanel = new JPanel();
-        JPanel leftSaveResultPanel = new JPanel();
-        leftSaveResultPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        leftSaveResultPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        leftSaveResultPanel.add(new JLabel("Choose combination to save: "));
-        leftSaveResultPanel.add(new JLabel("If no, choose combination to strike out ( 0 points)"));
-
-        JPanel centerSaveResultPanel = new JPanel();
-        centerSaveResultPanel.setLayout(new GridLayout(3, 2, 5, 5));
-        centerSaveResultPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        comboBoxSaveOptions.addAncestorListener(new RequestFocusListener());
-        centerSaveResultPanel.add(comboBoxSaveOptions);
-        centerSaveResultPanel.add(comboBoxStikeOutOptions);
-
-        saveResultPanel.add(leftSaveResultPanel);
-        saveResultPanel.add(centerSaveResultPanel);
-
-        return saveResultPanel;
-    }
-
-    /**
      * creates the menubar and populates it with swing components
      *
      * @return - returns the created menubar
      */
-    private JMenuBar createMenuBar() {
-        menuBar = new JMenuBar();
-        JMenu menu = new JMenu("Menu");
-        menu.setMnemonic(KeyEvent.VK_P);
-        menuBar.add(menu);
-
-        menuItemCreateNewPlayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.ALT_DOWN_MASK));
-        menuItemCreateNewPlayer.addActionListener(actionEvent -> createNewUser());
-
-        menuItemLogin.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.ALT_DOWN_MASK));
-        menuItemLogin.addActionListener(actionEvent -> loginplayer());
-
-        menuItemInvitePlayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
-        menuItemInvitePlayers.setEnabled(false);
-        menuItemInvitePlayers.addActionListener(actionEvent -> invitePlayer());
-
-        menuItemJoinGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_J, InputEvent.ALT_DOWN_MASK));
-        menuItemJoinGame.setEnabled(false);
-        menuItemJoinGame.addActionListener(actionEvent -> joinGame());
-
-//        menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK)));
-//        menuItemScoreBoard.setEnabled(false);
-
-        menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)));
-        menuItemExit.addActionListener(actionEvent -> System.exit(0));
-
-        menu.add(menuItemCreateNewPlayer);
-        menu.add(menuItemLogin);
-        menu.add(menuItemInvitePlayers);
-        menu.add(menuItemJoinGame);
-        //menu.add(menuItemScoreBoard);
-        menu.add(menuItemExit);
-
-        return menuBar;
-    }
+//    private JMenuBar createMenuBar() {
+//        menuBar = new JMenuBar();
+//        JMenu menu = new JMenu("Menu");
+//        menu.setMnemonic(KeyEvent.VK_P);
+//        menuBar.add(menu);
+//
+//        menuItemCreateNewPlayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.ALT_DOWN_MASK));
+//        menuItemCreateNewPlayer.addActionListener(actionEvent -> createNewUser());
+//
+//        menuItemLogin.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.ALT_DOWN_MASK));
+//        menuItemLogin.addActionListener(actionEvent -> loginplayer());
+//
+//        menuItemInvitePlayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
+//        menuItemInvitePlayers.setEnabled(false);
+//        menuItemInvitePlayers.addActionListener(actionEvent -> invitePlayer());
+//
+//        menuItemJoinGame.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_J, InputEvent.ALT_DOWN_MASK));
+//        menuItemJoinGame.setEnabled(false);
+//        menuItemJoinGame.addActionListener(actionEvent -> joinGame());
+//
+////        menuItemScoreBoard.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK)));
+////        menuItemScoreBoard.setEnabled(false);
+//
+//        menuItemExit.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK)));
+//        menuItemExit.addActionListener(actionEvent -> System.exit(0));
+//
+//        menu.add(menuItemCreateNewPlayer);
+//        menu.add(menuItemLogin);
+//        menu.add(menuItemInvitePlayers);
+//        menu.add(menuItemJoinGame);
+//        //menu.add(menuItemScoreBoard);
+//        menu.add(menuItemExit);
+//
+//        return menuBar;
+//    }
 
     /**
      * Setup communication with the server, Starts the GUI
@@ -700,8 +582,8 @@ public class Yatzy extends JPanel implements Runnable {
                         case "new_user":
                             if (!messageParts[0].equals("-1")) {
                                 player.setID(Integer.valueOf(messageParts[0]));
-                                player.setName(jTextFilednewUserInputName.getText());
-                                player.setEmail(jTextFieldnewUserInputEmail.getText());
+                                //player.setName(jTextFilednewUserInputName.getText());
+                                //player.setEmail(jTextFieldnewUserInputEmail.getText());
                             } else {
                                 player.setID(-1);
                             }
