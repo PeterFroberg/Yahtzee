@@ -38,6 +38,8 @@ public class Yatzy extends JPanel implements Runnable {
     private MainPanel mainPanel = new MainPanel();
     private MainRightPanel mainRightPanel = new MainRightPanel();
     private ScoreBoard scoreboard = new ScoreBoard();
+
+    //Kolla denna
     private SaveResultPanel saveResultPanel = new SaveResultPanel();
 
     private final BufferedReader socketReader;
@@ -93,9 +95,6 @@ public class Yatzy extends JPanel implements Runnable {
                 player.setID(0);
                 player.setName("");
                 player.setEmail("");
-                //setEnabled(false);
-
-
                 sendMessage("login::" + loginPanel.getLoginName() + ";;" + loginPanel.getLoginPassword());
                 while (player.getID() == 0) {
                     try {
@@ -132,7 +131,9 @@ public class Yatzy extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("new_user::" + newUserPanel.getNewUserName() + ";;" + newUserPanel.getNewUserEmail() + ";;" + newUserPanel.getNewUserPassword());
+                player.setName(newUserPanel.getNewUserName());
+                player.setEmail(newUserPanel.getNewUserEmail());
+                sendMessage("new_user::" + player.getName() + ";;" + player.getEmail() + ";;" + newUserPanel.getNewUserPassword());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -193,7 +194,7 @@ public class Yatzy extends JPanel implements Runnable {
 
     }
 
-    private void resetScoreBoard(boolean clearScoreBoard) {
+    private void resetScoreBoard() {
         //Clear and Fill unUsedScoreFieldsArray
         unUsedScoreFields.clear();
         unUsedScoreFields.addAll(Arrays.asList(LABELS));
@@ -205,12 +206,12 @@ public class Yatzy extends JPanel implements Runnable {
         unUsedScoreFields.remove("Grand total");
 
         //check if there is previous scores and if so clear scoreboard
-        if (clearScoreBoard && game.isGameStarted()) {
+        if (game.isGameStarted()) {
             scoreboard.resetScoreBoard(game.getNumberOfPlayers());
         }
     }
 
-    //Game play functions
+    //Gameplay functions
     private void playTurn() {
         mainPanel.buttonRollDices.setEnabled(true);
         numberOfDicesRolled = 1;
@@ -386,7 +387,7 @@ public class Yatzy extends JPanel implements Runnable {
         if (winner == 1) {
             winnerText = "YOU";
         } else {
-            winnerText = "player " + winner;
+            winnerText = game.getPlayerName(winner - 1);
         }
         JOptionPane.showMessageDialog(this, "The winner is " + winnerText + " with a score of " + highestScore + "!");
     }
@@ -433,7 +434,9 @@ public class Yatzy extends JPanel implements Runnable {
 
         switch (buttonpressed) {
             case JOptionPane.YES_OPTION:
-                saveScore(false);
+                if(saveResultPanel.checkSaveOptions()) {
+                    saveScore(false);
+                }
                 break;
             case JOptionPane.NO_OPTION:
                 saveScore(true);
@@ -445,9 +448,7 @@ public class Yatzy extends JPanel implements Runnable {
      * Setup communication with the server, Starts the GUI
      */
     private static void createAndShowGUI() {
-        /**
-         * Creates connection to server
-         */
+         //Creates connection to server
         Socket socket = null;
         PrintWriter socketWriter = null;
         BufferedReader socketReader = null;
@@ -463,16 +464,11 @@ public class Yatzy extends JPanel implements Runnable {
         }
 
         Yatzy mainPanel = new Yatzy(socketReader, socketWriter);
-
-        /**
-         * create a Receive thread
-         */
+        //create a Receive thread
         Thread receiveThread = new Thread(mainPanel);
         receiveThread.start();
 
-        /**
-         * Display GUI
-         */
+        //Display GUI
         JFrame frame = new JFrame("Peters online Yatzy game!");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(mainPanel);
@@ -495,9 +491,7 @@ public class Yatzy extends JPanel implements Runnable {
     @Override
     public void run() {
         try {
-            /**
-             * Keeps the receiver alive
-             */
+            //keeps the receiver alive
             while (true) {
                 if (socketReader.ready()) {
                     String incommingMessage = socketReader.readLine();
@@ -505,7 +499,6 @@ public class Yatzy extends JPanel implements Runnable {
                     String[] parts = incommingMessage.split("::");
                     String messageCode = parts[0];
                     String[] messageParts = parts[1].split(";;");
-                    //GÖR OM TILL CASE/SWITCH
                     switch (messageCode) {
                         case "chatt":
                             String sender[] = messageParts[0].split(":");
@@ -514,11 +507,11 @@ public class Yatzy extends JPanel implements Runnable {
                             } else {
                                 mainRightPanel.appendNewChattMessage("\n" + messageParts[0], Color.black);
                             }
-
                             break;
                         case "new_user":
                             if (!messageParts[0].equals("-1")) {
                                 player.setID(Integer.valueOf(messageParts[0]));
+                                JOptionPane.showMessageDialog(this, "New user successfully created!");
                                 //player.setName(jTextFilednewUserInputName.getText());
                                 //player.setEmail(jTextFieldnewUserInputEmail.getText());
                             } else {
@@ -530,24 +523,28 @@ public class Yatzy extends JPanel implements Runnable {
                                 player.setID(Integer.valueOf(messageParts[0]));
                                 player.setName(messageParts[1]);
                                 player.setEmail(messageParts[2]);
+                                scoreboard.updatePlayersName(player.getName(), 1);
                             } else {
                                 player.setID(-1);
                             }
                             break;
                         case "invitations":
+                            game.addPlayerName(player.getName());
                             game.setPositionInGame(Integer.parseInt(messageParts[0]));
                             game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
                             JOptionPane.showMessageDialog(this, messageParts[2]);
                             mainRightPanel.buttonSendChat.setEnabled(true);
-                            resetScoreBoard(true);
+                            resetScoreBoard();
+                            scoreboard.updatePlayersName(player.getName(), 1);
                             break;
                         case "player_added_to_game":
+                            game.addPlayerName(player.getName());
                             game.setPositionInGame(Integer.parseInt(messageParts[0]));
                             game.setNumberOfPlayers(Integer.parseInt(messageParts[1]));
                             if (game.getPositionInGame() != -1) {
                                 mainRightPanel.buttonSendChat.setEnabled(true);
                                 game.setGameStarted(true);
-                                resetScoreBoard(true);
+                                resetScoreBoard();
                             }
                             JOptionPane.showMessageDialog(this, messageParts[2]);
                             break;
@@ -555,6 +552,8 @@ public class Yatzy extends JPanel implements Runnable {
                             if (game.getPositionInGame() != 1) {
                                 JOptionPane.showMessageDialog(this, messageParts[0]);
                             } else {
+                                resetScoreBoard();
+                                game.setGameStarted(true);
                                 playTurn();
                             }
                             break;
@@ -577,13 +576,25 @@ public class Yatzy extends JPanel implements Runnable {
                         case "game_completed":
                             showWinner();
                             break;
+                        case "newPlayerJoined":
+                            String name = messageParts[0];
+                            int index = Integer.parseInt(messageParts[1]);
+                            if (index == game.getPositionInGame()) {
+                                index = 0;
+
+                            } else {
+                                if (index < game.getPositionInGame()) {
+                                    index = game.getPositionInGame();
+                                }
+                            }
+                            game.addPlayerName(name);
+                            scoreboard.updatePlayersName(name, index);
+                            break;
                     }
                 }
                 Thread.sleep(100);
             }
-        } catch (InterruptedException e) {
-
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
 

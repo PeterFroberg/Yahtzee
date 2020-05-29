@@ -8,6 +8,7 @@ public class Game {
     private int numberOfPlayers = 0;
     private int playersCompletedGame = 0;
     private boolean gameStarted = false;
+    private ArrayList<String> playerNames = new ArrayList<>();
 
     Game(){
     }
@@ -50,5 +51,12 @@ public class Game {
 
     public void increasePlayersCompletedGame() {
         this.playersCompletedGame++;
+    }
+
+    public void addPlayerName(String playerName){
+        playerNames.add(playerName);
+    }
+    public String getPlayerName(int index){
+        return playerNames.get(index);
     }
 }

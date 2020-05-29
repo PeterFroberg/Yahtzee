@@ -49,4 +49,11 @@ public class SaveResultPanel extends JPanel {
         comboBoxStikeOutOptions.removeAllItems();
     }
 
+    public boolean checkSaveOptions(){
+        if(comboBoxSaveOptions.getItemCount() == 0){
+            return false;
+        }
+        return true;
+    }
+
 }

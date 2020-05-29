@@ -10,15 +10,21 @@ import static peter.Yatzy.LABELS;
 public class ScoreBoard extends JPanel {
     private Map<String, JTextField> scoreBoardMap = new HashMap<String, JTextField>();
 
+    JLabel h;
+    JLabel h1;
+    JLabel h2;
+    JLabel h3;
+    JLabel h4;
+
     public ScoreBoard() {
         //populate the panel.
         setLayout(new SpringLayout());
 
-        JLabel h = new JLabel("Player: ", JLabel.CENTER);
-        JLabel h1 = new JLabel("You", JLabel.CENTER);
-        JLabel h2 = new JLabel("P 2", JLabel.CENTER);
-        JLabel h3 = new JLabel("P 3", JLabel.CENTER);
-        JLabel h4 = new JLabel("P 4", JLabel.CENTER);
+        h = new JLabel("Player: ", JLabel.CENTER);
+        h1 = new JLabel("You", JLabel.CENTER);
+        h2 = new JLabel("P 2", JLabel.CENTER);
+        h3 = new JLabel("P 3", JLabel.CENTER);
+        h4 = new JLabel("P 4", JLabel.CENTER);
 
         add(h);
         add(h1);
@@ -113,9 +119,29 @@ public class ScoreBoard extends JPanel {
                 temp.setText("");
             }
         }
+        h2.setText("P2");
+        h3.setText("P3");
+        h4.setText("P4");
     }
 
     public int getScoreFieldValue(String scoreField) {
         return Integer.parseInt(scoreBoardMap.get(scoreField).getText());
+    }
+
+    public void updatePlayersName(String name, int index){
+        switch (index){
+            case 1:
+                h1.setText(name);
+                break;
+            case 2:
+                h2.setText(name);
+                break;
+            case 3:
+                h3.setText(name);
+                break;
+            case 4:
+                h4.setText(name);
+                break;
+        }
     }
 }

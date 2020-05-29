@@ -27,6 +27,7 @@ public class YatzyServer implements Runnable {
 
     private LinkedBlockingQueue<String> playerMessageQueue;
     private Game currentGame = new Game();
+    private Player player;
 
     private YatzyServer(Socket clientSocket, LinkedBlockingQueue<String> playerMessageQueue) {
         this.clientSocket = clientSocket;
@@ -46,7 +47,7 @@ public class YatzyServer implements Runnable {
     private void loginPlayer(String message) {
         databaseHandler.connectToDatabase();
         String[] loginUserParts = message.split(";;");
-        Player player = databaseHandler.login(loginUserParts[0], loginUserParts[1]);
+        player = databaseHandler.login(loginUserParts[0], loginUserParts[1]);
         try {
             if (player != null) {
                 playerMessageQueue.put("login_user::" + player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
@@ -89,8 +90,8 @@ public class YatzyServer implements Runnable {
         currentGame.setPositionInGame(Integer.parseInt(playerAddedToGameParts[1]));
         currentGame.setNumberOfPlayers(Integer.parseInt(playerAddedToGameParts[0]));
         sendToMyMessageQueue("player_added_to_game::", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + playerAddedToGameParts[2]);
+        sendToInGamePlayers("newPlayerJoined::",player.getName() + ";;" + currentGame.getPositionInGame(), false);
         joinCommunicationForGame();
-        checkGameStarted();
         //databaseHandler.disconnectDatabase();
     }
 
@@ -108,6 +109,7 @@ public class YatzyServer implements Runnable {
         currentGame.increasePlayersCompletedGame();
         if (currentGame.getNumberOfPlayers() - currentGame.getPlayersCompletedGame() == 0) {
             sendToInGamePlayers("game_completed::", "na", true);
+            databaseHandler.setGameState(currentGame.getID(),"Finished");
         } else {
             sendToInGamePlayers("player_completed_game::", "na", false);
         }
@@ -136,7 +138,8 @@ public class YatzyServer implements Runnable {
                     e.printStackTrace();
                 }
             }
-            sendToMyMessageQueue("game_started::", "Game is started, Please wait for your turn");
+            sendToInGamePlayers("newPlayerJoined::",player.getName() + ";;" + currentGame.getPositionInGame(), false);
+            sendToInGamePlayers("game_started::", "Game is started, Please wait for your turn", true);
             databaseHandler.setGameState(currentGame.getID(), "playing");
             //databaseHandler.disconnectDatabase();
         }).start();
