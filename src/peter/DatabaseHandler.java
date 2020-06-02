@@ -278,7 +278,6 @@ public class DatabaseHandler {
         }
     }
 
-
     private ResultSet getPlayerInGame(int gameID) {
         ResultSet resultSet = null;
         try {
@@ -339,7 +338,6 @@ public class DatabaseHandler {
 
         return max_position;
     }
-
 
     public int getNextPlayerTurn(int gameID) {
         int nextPlayerTurn = 0;

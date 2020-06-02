@@ -1,5 +1,7 @@
 package peter;
 
+import org.jdom2.Document;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -33,6 +35,8 @@ public class Yatzy extends JPanel implements Runnable {
     private Player player = new Player();
     private Game game = new Game();
 
+    private XmlDocumentHandler xmlDocumentHandler = new XmlDocumentHandler();
+
     private static MenuBar menuBar = new MenuBar();
 
     private MainPanel mainPanel = new MainPanel();
@@ -64,7 +68,7 @@ public class Yatzy extends JPanel implements Runnable {
         mainPanel.buttonRollDices.addActionListener(actionEvent -> rollDices());
         mainPanel.buttonSaveResult.addActionListener(actionEvent -> saveDices());
         mainRightPanel.buttonSendChat.addActionListener(actionEvent ->
-                sendMessage("chatt::" + player.getName() + ": " + mainRightPanel.getNewChatMessage()));
+                sendMessage("chatt",  player.getName() + ": " + mainRightPanel.getNewChatMessage()));
 
         //Add panels to the frame
         add(mainPanel, BorderLayout.NORTH);
@@ -95,7 +99,7 @@ public class Yatzy extends JPanel implements Runnable {
                 player.setID(0);
                 player.setName("");
                 player.setEmail("");
-                sendMessage("login::" + loginPanel.getLoginName() + ";;" + loginPanel.getLoginPassword());
+                sendMessage("login", loginPanel.getLoginName() + ";;" + loginPanel.getLoginPassword());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -133,7 +137,7 @@ public class Yatzy extends JPanel implements Runnable {
             if (buttonPressed == JOptionPane.OK_OPTION) {
                 player.setName(newUserPanel.getNewUserName());
                 player.setEmail(newUserPanel.getNewUserEmail());
-                sendMessage("new_user::" + player.getName() + ";;" + player.getEmail() + ";;" + newUserPanel.getNewUserPassword());
+                sendMessage("new_user", player.getName() + ";;" + player.getEmail() + ";;" + newUserPanel.getNewUserPassword());
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -159,8 +163,9 @@ public class Yatzy extends JPanel implements Runnable {
      *
      * @param message - message to be sent
      */
-    private void sendMessage(String message) {
-        socketWriter.println(message);
+    private void sendMessage(String code, String message) {
+        String xmlString = xmlDocumentHandler.createXmlString(code, player,message, game);
+        socketWriter.println(xmlString);
     }
 
     private void invitePlayer() {
@@ -172,7 +177,7 @@ public class Yatzy extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("invite_players::" + player.getEmail() + ";" + player.getID() + ";" + invitePlayerPanel.getInviteedPlayers());
+                sendMessage("invite_players", player.getEmail() + ";" + player.getID() + ";" + invitePlayerPanel.getInviteedPlayers());
             }
             endInviteInput = true;
         }
@@ -187,7 +192,7 @@ public class Yatzy extends JPanel implements Runnable {
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("join_game::" + player.getID() + ";" + player.getEmail() + ";" + joinGamePanel.getJoinGame());
+                sendMessage("join_game" , player.getID() + ";" + player.getEmail() + ";" + joinGamePanel.getJoinGame());
             }
             endJoinGame = true;
         }
@@ -220,7 +225,7 @@ public class Yatzy extends JPanel implements Runnable {
 
     private void rollDices() {
         if (numberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
-            sendMessage("roll_dices::na");
+            sendMessage("roll_dices", "na");
             mainPanel.buttonSaveResult.setEnabled(true);
             if (numberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS) {
                 mainPanel.buttonRollDices.setEnabled(false);
@@ -356,7 +361,7 @@ public class Yatzy extends JPanel implements Runnable {
             updateUnusedScoreFields(choice);
         }
         if (unUsedScoreFields.size() < 1) {
-            sendMessage("player_completed_game::na");
+            sendMessage("player_completed_game", "na");
             game.increasePlayersCompletedGame();
         }
     }
@@ -404,7 +409,7 @@ public class Yatzy extends JPanel implements Runnable {
             score = calculatedScores.get(choice);
         }
 
-        sendMessage("turn_completed::" + choice + ";;" + score);
+        sendMessage("turn_completed", choice + ";;" + score);
         updateScoreBoard(choice, score, game.getPositionInGame());
         dices.clear();
         mainPanel.buttonSaveResult.setEnabled(false);
@@ -496,9 +501,9 @@ public class Yatzy extends JPanel implements Runnable {
                 if (socketReader.ready()) {
                     String incommingMessage = socketReader.readLine();
                     System.out.println("Received: " + incommingMessage);
-                    String[] parts = incommingMessage.split("::");
-                    String messageCode = parts[0];
-                    String[] messageParts = parts[1].split(";;");
+                    String messageCode = xmlDocumentHandler.parseXml(incommingMessage, "code");
+                    String[] messageParts = xmlDocumentHandler.parseXml(incommingMessage, "body").split(";;");
+
                     switch (messageCode) {
                         case "chatt":
                             String sender[] = messageParts[0].split(":");

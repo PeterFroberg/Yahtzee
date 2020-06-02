@@ -1,9 +1,11 @@
 package peter;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -29,6 +31,8 @@ public class YatzyServer implements Runnable {
     private Game currentGame = new Game();
     private Player player;
 
+    private XmlDocumentHandler xmlDocumentHandler = new XmlDocumentHandler();
+
     private YatzyServer(Socket clientSocket, LinkedBlockingQueue<String> playerMessageQueue) {
         this.clientSocket = clientSocket;
         this.playerMessageQueue = playerMessageQueue;
@@ -39,7 +43,7 @@ public class YatzyServer implements Runnable {
         String[] newUserParts = message.split(";;");
         int newDBID = databaseHandler.CreateNewPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
         if (newDBID != 0) {
-            sendToMyMessageQueue("new_user::", String.valueOf(newDBID));
+            sendToMyMessageQueue("new_user", String.valueOf(newDBID));
         }
         //databaseHandler.disconnectDatabase();
     }
@@ -48,14 +52,10 @@ public class YatzyServer implements Runnable {
         databaseHandler.connectToDatabase();
         String[] loginUserParts = message.split(";;");
         player = databaseHandler.login(loginUserParts[0], loginUserParts[1]);
-        try {
-            if (player != null) {
-                playerMessageQueue.put("login_user::" + player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
-            } else {
-                playerMessageQueue.put("login_user::" + "-1");
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if (player != null) {
+            sendToMyMessageQueue("login_user", player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
+        } else {
+            sendToMyMessageQueue("login_user", "-1");
         }
 
         //databaseHandler.disconnectDatabase();
@@ -73,7 +73,7 @@ public class YatzyServer implements Runnable {
             result = mailhandler.send(playerToInvite, "testarepostkurs@gmail.com", "Yahtzee invitation", body);
         }
         currentGame.setPositionInGame(1);
-        sendToMyMessageQueue("invitations::", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + result);
+        sendToMyMessageQueue("invitations", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + result);
         databaseHandler.addPlayerToGame(currentGame.getID(), Integer.parseInt(invitedPlayersParts[1]));
         createCommnunicationForGame();
         checkGameStarted();
@@ -89,8 +89,8 @@ public class YatzyServer implements Runnable {
         String[] playerAddedToGameParts = playerAdded.split(";;");
         currentGame.setPositionInGame(Integer.parseInt(playerAddedToGameParts[1]));
         currentGame.setNumberOfPlayers(Integer.parseInt(playerAddedToGameParts[0]));
-        sendToMyMessageQueue("player_added_to_game::", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + playerAddedToGameParts[2]);
-        sendToInGamePlayers("newPlayerJoined::",player.getName() + ";;" + currentGame.getPositionInGame(), false);
+        sendToMyMessageQueue("player_added_to_game", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + playerAddedToGameParts[2]);
+        sendToInGamePlayers("newPlayerJoined",player.getName() + ";;" + currentGame.getPositionInGame(), false);
         joinCommunicationForGame();
         //databaseHandler.disconnectDatabase();
     }
@@ -102,16 +102,16 @@ public class YatzyServer implements Runnable {
             nextPlayer = 1;
         }
         String newMessage = nextPlayer + ";;" + currentGame.getPositionInGame() + ";;" + turnCompetedParts[0] + ";;" + turnCompetedParts[1];
-        sendToInGamePlayers("players_turn::", newMessage, false);
+        sendToInGamePlayers("players_turn", newMessage, false);
     }
 
     private void playerCompletedGame(){
         currentGame.increasePlayersCompletedGame();
         if (currentGame.getNumberOfPlayers() - currentGame.getPlayersCompletedGame() == 0) {
-            sendToInGamePlayers("game_completed::", "na", true);
+            sendToInGamePlayers("game_completed", "na", true);
             databaseHandler.setGameState(currentGame.getID(),"Finished");
         } else {
-            sendToInGamePlayers("player_completed_game::", "na", false);
+            sendToInGamePlayers("player_completed_game", "na", false);
         }
     }
 
@@ -138,8 +138,8 @@ public class YatzyServer implements Runnable {
                     e.printStackTrace();
                 }
             }
-            sendToInGamePlayers("newPlayerJoined::",player.getName() + ";;" + currentGame.getPositionInGame(), false);
-            sendToInGamePlayers("game_started::", "Game is started, Please wait for your turn", true);
+            sendToInGamePlayers("newPlayerJoined",player.getName() + ";;" + currentGame.getPositionInGame(), false);
+            sendToInGamePlayers("game_started", "Game is started, Please wait for your turn", true);
             databaseHandler.setGameState(currentGame.getID(), "playing");
             //databaseHandler.disconnectDatabase();
         }).start();
@@ -170,8 +170,10 @@ public class YatzyServer implements Runnable {
 
             } else {
                 try {
+                    String xmlString = xmlDocumentHandler.createXmlString(messageCode, player, message, currentGame);
                     synchronized (Lock) {
-                        que.put(messageCode + message);
+                        //que.put(messageCode + message);
+                        que.put(xmlString);
                     }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -188,8 +190,10 @@ public class YatzyServer implements Runnable {
      */
     private void sendToMyMessageQueue(String messageCode, String message) {
         try {
+            String xmmlString = xmlDocumentHandler.createXmlString(messageCode, player , message, currentGame);
             synchronized (Lock) {
-                playerMessageQueue.put(messageCode + message);
+                //playerMessageQueue.put(messageCode + message);
+                playerMessageQueue.put(xmmlString);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -247,29 +251,21 @@ public class YatzyServer implements Runnable {
 
     @Override
     public void run() {
-
         boolean gameActive = true;
-        //int gameID = 0;
 
-        /**
-         * Creates reader and writer for communication to and from the client
-         */
+        //Creates reader and writer for communication to and from the client
         PrintWriter socketWriter = null;
         BufferedReader socketReader = null;
         try {
             socketWriter = new PrintWriter(clientSocket.getOutputStream(), true);
             PrintWriter finalSocketWriter = socketWriter;
 
-            /**
-             * Creates a thread for sending messages to the client
-             */
+            //Creates a thread for sending messages to the client
             new Thread(() -> {
                 String mess;
                 while (true) {
                     try {
-                        /**
-                         * wait for a new message to arrive in the clients messagequeue and the send it to the client
-                         */
+                        //wait for a new message to arrive in the clients messagequeue and the send it to the client
                         mess = playerMessageQueue.take();
                         //Send the message to the client
                         finalSocketWriter.println(mess);
@@ -279,22 +275,18 @@ public class YatzyServer implements Runnable {
                 }
             }).start();
 
-            /**
-             * create a Thread to check for when to start game
-             */
-
+            // create a Thread to check for when to start game
             socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             String incommingMessage = socketReader.readLine();
             System.out.println(incommingMessage);
 
             while (gameActive) {
-                String[] parts = incommingMessage.split("::");
-                String messageCode = parts[0];
-                String message = parts[1];
+                String messageCode = xmlDocumentHandler.parseXml(incommingMessage, "code");
+                String message = xmlDocumentHandler.parseXml(incommingMessage, "body");
                 switch (messageCode) {
                     case "chatt":
-                        sendToInGamePlayers("chatt::", message, true);
+                        sendToInGamePlayers("chatt", message, true);
                         break;
                     case "login":
                         loginPlayer(message);
@@ -312,7 +304,7 @@ public class YatzyServer implements Runnable {
                         turnCompleted(message);
                         break;
                     case "roll_dices":
-                        sendToMyMessageQueue("rolled_dices::", rollDices());
+                        sendToMyMessageQueue("rolled_dices", rollDices());
                         //sendToMyMessageQueue("rolled_dices::", "3;;3;;6;;6;;6");
                         break;
                     case "player_completed_game":
@@ -323,13 +315,13 @@ public class YatzyServer implements Runnable {
                 //Check for new messages
                 try {
                     incommingMessage = socketReader.readLine();
+
                 } catch (SocketException e) {
                     e.printStackTrace();
                     break;
                 }
                 System.out.println("Received:" + incommingMessage);
             }
-
 
         } catch (SocketException e) {
             e.printStackTrace();

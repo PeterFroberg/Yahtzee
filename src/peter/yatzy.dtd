@@ -1,0 +1,12 @@
+<!ELEMENT message (header, code, body)>
+<!ELEMENT header (protocol, id)>
+<!ELEMENT protocol (type, version)>
+<!ELEMENT type (#PCDATA)>
+<!ELEMENT version (#PCDATA)>
+<!ELEMENT code (#PCDATA)>
+<!ELEMENT id (name, email, gamenum, playerpostion)>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT email (#PCDATA)>
+<!ELEMENT gamenum (#PCDATA)>
+<!ELEMENT playerpostion (#PCDATA)>
+<!ELEMENT body (#PCDATA)>
