@@ -35,10 +35,6 @@ public class DatabaseHandler {
         }
     }
 
-    public void getScoreBoard(int playerID) {
-
-    }
-
     /**
      * Handels the login process
      *
@@ -187,8 +183,6 @@ public class DatabaseHandler {
         return newGameID;
     }
 
-    //ADD Player to game
-
     /**
      * Add player to the game
      *
@@ -278,20 +272,6 @@ public class DatabaseHandler {
         }
     }
 
-    private ResultSet getPlayerInGame(int gameID) {
-        ResultSet resultSet = null;
-        try {
-            sqlStatement = dbConnection.prepareStatement("SELECT * FROM playinggame WHERE gameID = ?");
-            sqlStatement.setInt(1, gameID);
-            resultSet = sqlStatement.executeQuery();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            closeSQLStatement();
-        }
-        return resultSet;
-    }
-
     /**
      * gets the expected number of players, how many players that was invited to the game
      *
@@ -339,30 +319,4 @@ public class DatabaseHandler {
         return max_position;
     }
 
-    public int getNextPlayerTurn(int gameID) {
-        int nextPlayerTurn = 0;
-        try {
-            sqlStatement = dbConnection.prepareStatement("SELECT MAX(playerToPlay) playerToPlay FROM games WHERE ID = ?");
-            sqlStatement.setInt(1, gameID);
-            ResultSet resultSet = sqlStatement.executeQuery();
-            if (resultSet.next()){
-                nextPlayerTurn = resultSet.getInt("playerToPlay");
-            }
-            movePlayerTurn(gameID, nextPlayerTurn);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return nextPlayerTurn;
-    }
-
-    private void movePlayerTurn(int gameID, int playerTurn){
-        try {
-            sqlStatement = dbConnection.prepareStatement("UPDATE games SET PlayerToPlay = ? WHERE ID = ?");
-            sqlStatement.setInt(1, playerTurn + 1);
-            sqlStatement.setInt(2, gameID);
-            sqlStatement.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
 }

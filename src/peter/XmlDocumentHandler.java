@@ -5,6 +5,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.XMLReaders;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
@@ -12,9 +13,18 @@ import java.io.IOException;
 import java.io.StringReader;
 
 public class XmlDocumentHandler {
-    XmlDocumentHandler(){
+
+    public XmlDocumentHandler(){
     }
 
+    /**
+     * Creates a XMLString by first create a XML document and then convert it to a string
+     * @param code - communication code/command
+     * @param player - player object
+     * @param body  - message to be sent
+     * @param game  - game object
+     * @return - a XML document converted to a string representation
+     */
     public String createXmlString(String code, Player player, String body, Game game){
         Element messageElement = new Element("message");
         Element headerElement = new Element("header");
@@ -26,10 +36,10 @@ public class XmlDocumentHandler {
         Element nameElement = new Element("name");
         Element emailElement = new Element("email");
         Element gamenumElement = new Element("gamenum");
-        Element playerpositionElement = new Element("playerposition");
+        Element playerpositionElement = new Element("playerpostion");
         Element bodyElement = new Element("body");
 
-        //Set endnode values
+        //Set end-node values
         typeElement.addContent("YCP");
         versionElement.addContent("1.0");
         codeElement.addContent(code);
@@ -52,11 +62,18 @@ public class XmlDocumentHandler {
         idElement.addContent(gamenumElement);
         idElement.addContent(playerpositionElement);
 
-        DocType docType = new DocType("message", null, "src/peter/Yatzy.dtd");
+        //Define document Type
+        DocType docType = new DocType("message", null, "./Yatzy.dtd");
 
+        //Return and convert the document to a String representation
         return convertToString(new Document(messageElement, docType));
     }
 
+    /**
+     * convert a XML document to a string representation in compact format and "" as line separator
+     * @param doc
+     * @return
+     */
     public String convertToString(Document doc){
         Format format = Format.getCompactFormat();
         format.setLineSeparator("");
@@ -65,8 +82,16 @@ public class XmlDocumentHandler {
         return xmlOutputter.outputString(doc);
     }
 
+    /**
+     * parse a XML string vy converting the XML string to a document using SAXBuilder and verify that the
+     * XML follows the rules set in the yatzy.dtd file, if XML don't follow the "yatzy.dtd" requirements
+     * a blank string is returned
+     * @param xmlString
+     * @param attribute
+     * @return
+     */
     public String parseXml(String xmlString, String attribute){
-        SAXBuilder saxBuilder = new SAXBuilder();
+        SAXBuilder saxBuilder = new SAXBuilder(XMLReaders.DTDVALIDATING);
         try {
             Document doc = saxBuilder.build(new StringReader(xmlString));
             Element root = doc.getRootElement();

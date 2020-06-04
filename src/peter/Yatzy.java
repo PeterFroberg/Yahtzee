@@ -43,12 +43,17 @@ public class Yatzy extends JPanel implements Runnable {
     private MainRightPanel mainRightPanel = new MainRightPanel();
     private ScoreBoard scoreboard = new ScoreBoard();
 
-    //Kolla denna
     private SaveResultPanel saveResultPanel = new SaveResultPanel();
 
     private final BufferedReader socketReader;
     private final PrintWriter socketWriter;
 
+    /**
+     * The constructor generates a new game GUI
+     *
+     * @param socketReader - socketReader for incoming messages
+     * @param socketWriter - socketWriter for outgoing messages
+     */
     public Yatzy(BufferedReader socketReader, PrintWriter socketWriter) {
 
         this.socketReader = socketReader;
@@ -68,7 +73,7 @@ public class Yatzy extends JPanel implements Runnable {
         mainPanel.buttonRollDices.addActionListener(actionEvent -> rollDices());
         mainPanel.buttonSaveResult.addActionListener(actionEvent -> saveDices());
         mainRightPanel.buttonSendChat.addActionListener(actionEvent ->
-                sendMessage("chatt",  player.getName() + ": " + mainRightPanel.getNewChatMessage()));
+                sendMessage("chatt", player.getName() + ": " + mainRightPanel.getNewChatMessage()));
 
         //Add panels to the frame
         add(mainPanel, BorderLayout.NORTH);
@@ -77,7 +82,7 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     /**
-     * Enables/disabels swing components
+     * Enables/disabels swing components in the menubar
      *
      * @param value - true/false
      */
@@ -86,20 +91,24 @@ public class Yatzy extends JPanel implements Runnable {
     }
 
     /**
-     * Login player on the server, shows a dialogbox for signing in
+     * Login player on the server, shows a JOptionPane for signing in
      */
     private void loginplayer() {
         LoginPanel loginPanel = new LoginPanel();
         boolean endLogin = false;
         while (!endLogin) {
+            //Display login windows and wait for a response
             int buttonPressed = JOptionPane.showConfirmDialog(null, loginPanel, "User Login"
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
+            //Check if user pushed OK button
             if (buttonPressed == JOptionPane.OK_OPTION) {
                 player.setID(0);
                 player.setName("");
                 player.setEmail("");
+                //Sends login request to server
                 sendMessage("login", loginPanel.getLoginName() + ";;" + loginPanel.getLoginPassword());
+                //Wait for response from server by checking if player ID have been updated
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -107,15 +116,18 @@ public class Yatzy extends JPanel implements Runnable {
                         e.printStackTrace();
                     }
                 }
+                //If unable to login
                 if (player.getID() == -1) {
                     JOptionPane.showMessageDialog(this, "Unable to Login! Either User don't exist, wrong username or wrong password entered!");
                 } else {
+                    //On successful login update player info
                     loginPanel.setLoginPassword("");
                     enableMenuOptions(true);
                     endLogin = true;
                     JOptionPane.showMessageDialog(this, "Welcom back " + player.getName() + "!");
                 }
             } else {
+                //if cancel button pressed end login process
                 endLogin = true;
             }
         }
@@ -130,14 +142,17 @@ public class Yatzy extends JPanel implements Runnable {
         NewUserPanel newUserPanel = new NewUserPanel();
         boolean endUserInput = false;
         while (!endUserInput) {
+            //Display create new user windows and wait for a response
             int buttonPressed = JOptionPane.showConfirmDialog(
                     null, newUserPanel, "New user Form : "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
+            //Check if OK button is pressed
             if (buttonPressed == JOptionPane.OK_OPTION) {
                 player.setName(newUserPanel.getNewUserName());
                 player.setEmail(newUserPanel.getNewUserEmail());
                 sendMessage("new_user", player.getName() + ";;" + player.getEmail() + ";;" + newUserPanel.getNewUserPassword());
+                //Wait for server response
                 while (player.getID() == 0) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(100);
@@ -145,14 +160,17 @@ public class Yatzy extends JPanel implements Runnable {
                         e.printStackTrace();
                     }
                 }
+                //Check if new user was created -1 is unsuccessful
                 if (player.getID() == -1) {
                     JOptionPane.showMessageDialog(this, "User already exists! Use another email account");
                 } else {
+                    //on successful new user creation update player object
                     player.setName(newUserPanel.getName());
                     player.setEmail(newUserPanel.getNewUserEmail());
                     enableMenuOptions(true);
                 }
             }
+            //end new user process
             endUserInput = true;
             newUserPanel.setNewUserPassword("");
         }
@@ -164,41 +182,56 @@ public class Yatzy extends JPanel implements Runnable {
      * @param message - message to be sent
      */
     private void sendMessage(String code, String message) {
-        String xmlString = xmlDocumentHandler.createXmlString(code, player,message, game);
+        String xmlString = xmlDocumentHandler.createXmlString(code, player, message, game);
         socketWriter.println(xmlString);
     }
 
+    /**
+     * Invite players to the game, players are separated with ;
+     */
     private void invitePlayer() {
         InvitePlayerPanel invitePlayerPanel = new InvitePlayerPanel();
         boolean endInviteInput = false;
         while (!endInviteInput) {
+            //Display a invite player window
             int buttonPressed = JOptionPane.showConfirmDialog(
                     null, invitePlayerPanel, "Invite players: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
+            //Check if OK button is pressed
             if (buttonPressed == JOptionPane.OK_OPTION) {
+                //Send inviation request to server
                 sendMessage("invite_players", player.getEmail() + ";" + player.getID() + ";" + invitePlayerPanel.getInviteedPlayers());
             }
             endInviteInput = true;
         }
     }
 
+    /**
+     * Join game, lets the player Join a game by supplying gameID received by email
+     */
     private void joinGame() {
         JoinGamePanel joinGamePanel = new JoinGamePanel();
         boolean endJoinGame = false;
         while (!endJoinGame) {
+            //Display join game window
             int buttonPressed = JOptionPane.showConfirmDialog(
                     null, joinGamePanel, "Join Game: "
                     , JOptionPane.OK_CANCEL_OPTION
                     , JOptionPane.PLAIN_MESSAGE);
+            //check if OK button is pressed
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                sendMessage("join_game" , player.getID() + ";" + player.getEmail() + ";" + joinGamePanel.getJoinGame());
+                //Send join game request to server
+                sendMessage("join_game", player.getID() + ";;" + player.getEmail() + ";;" + joinGamePanel.getJoinGame());
             }
             endJoinGame = true;
         }
 
     }
 
+    /**
+     * Resets the scoreboard, removes all previous scores and players
+     */
     private void resetScoreBoard() {
         //Clear and Fill unUsedScoreFieldsArray
         unUsedScoreFields.clear();
@@ -212,82 +245,126 @@ public class Yatzy extends JPanel implements Runnable {
 
         //check if there is previous scores and if so clear scoreboard
         if (game.isGameStarted()) {
+            //Request scoreboard to be reset
             scoreboard.resetScoreBoard(game.getNumberOfPlayers());
         }
     }
 
     //Gameplay functions
+
+    /**
+     * playturn, informs the player that is the players turn and enables Roll dice button
+     */
     private void playTurn() {
         mainPanel.buttonRollDices.setEnabled(true);
         numberOfDicesRolled = 1;
         JOptionPane.showMessageDialog(this, "It it your turn! Please roll the dices to start the turn.");
     }
 
+    /**
+     * RollDice, requests new dices from server, enables the save result button and increase the number of dice rolls performed this turn
+     */
     private void rollDices() {
+        //Check if there is remaining dice rolls left this turn
         if (numberOfDicesRolled <= MAX_NUMBER_OF_DICE_ROLLS) {
             sendMessage("roll_dices", "na");
             mainPanel.buttonSaveResult.setEnabled(true);
             if (numberOfDicesRolled == MAX_NUMBER_OF_DICE_ROLLS) {
                 mainPanel.buttonRollDices.setEnabled(false);
             }
+            //increase number of dices rolled this turn
             numberOfDicesRolled++;
         } else {
+            //disable roll dice button if maximum number of dice rolls is performed
             mainPanel.buttonRollDices.setEnabled(false);
         }
     }
 
+    /**
+     * Put the recived dices in the dices arraylist
+     *
+     * @param dicesString - dices received from server
+     */
     private void putDicesInArray(String[] dicesString) {
-        for(String dice : dicesString){
+        for (String dice : dicesString) {
             dices.add(Integer.parseInt(dice));
         }
-        System.out.println(dices);
+        //sort the dices in the arraylist
         Collections.sort(dices);
-        System.out.println(dices);
     }
 
+    /**
+     * Check if which singles is possible for the player, put possible singles in dropdown for saving score
+     */
     private void checkSingels() {
+        //Check for singles in the dices arraylist
         for (int i = 1; i < 7; i++) {
             if (dices.contains(i)) {
+                //if the single is unsaved add it to save dropdown
                 if (unUsedScoreFields.contains(LABELS[i - 1])) {
+                    //calculate the score for the singel
                     int sum = 0;
                     for (int dice : dices) {
                         if (dice == i) {
                             sum += i;
                         }
                     }
+                    //adds the score to add calculated score structure
                     addCalculatedScore(LABELS[i - 1], sum);
                 }
             }
         }
     }
 
+    /**
+     * Check for multiples (pair, 2 pair, Trips, quadruples and Yatzy)
+     *
+     * @param occurrencesOfDices - ArrayList with number of dices that are the same, all possible is represented in the arraylist
+     */
     private void checkForMultiples(ArrayList<Integer> occurrencesOfDices) {
         int pair1Sum = 0;
+        //loop through the different dice values staring with the highest number
         for (int i = 5; i >= 0; i--) {
             int occurrences = occurrencesOfDices.get(i);
+            //check id pair is already identified and if that the dice value is a pair
             if (pair1Sum == 0 && occurrences > 1) {
-                pair1Sum = (i + 1) * 2;
+                //Check id 1 pair is unused
                 if (unUsedScoreFields.contains("1 pair")) {
+                    //Calculate score
+                    pair1Sum = (i + 1) * 2;
+                    //add the score to calculated Score structure
                     addCalculatedScore("1 pair", pair1Sum);
                 }
             }
+            //check that a pair is previously identified, that 2 pair is unused and if that the dice value is a pair
             if (pair1Sum != 0 && unUsedScoreFields.contains("2 pairs") && occurrences > 1) {
+                //check if it is possible to make 2 pair from the same dice value
                 if (!((i + 1 == (pair1Sum / 2)) && !(occurrences > 3))) {
+                    //add and calculate the score to calculated Score structure
                     addCalculatedScore("2 pairs", ((i + 1) * 2) + pair1Sum);
                 }
             }
+            //Check if there is any trips in dices
             if (unUsedScoreFields.contains("3 of a kind") && occurrences > 2) {
+                //add and calculate the score to calculated Score structure
                 addCalculatedScore("3 of a kind", (i + 1) * 3);
             }
+            //Check if there is any quads in dices
             if (unUsedScoreFields.contains("4 of a kind") && occurrences > 3) {
+                //add and calculate the score to calculated Score structure
                 addCalculatedScore("4 of a kind", (i + 1) * 4);
             }
+            //check if is Yatzy in the dices
             if (unUsedScoreFields.contains("YATZY") && occurrences > 4) {
+                //add and calculate the score to calculated Score structure
                 addCalculatedScore("YATZY", 50);
             }
         }
     }
 
+    /**
+     * Check for combos and multiples in dices
+     */
     private void checkCombinations() {
         ArrayList<Integer> occurrencesOfDices = new ArrayList<>();
         for (int i = 1; i < 7; i++) {
@@ -297,8 +374,13 @@ public class Yatzy extends JPanel implements Runnable {
         checkForCombinations(occurrencesOfDices);
     }
 
+    /**
+     * Check if there is any combos in dices
+     *
+     * @param occurrencesOfDices - ArrayList with number of dices that are the same, all possible is represented in the arraylist
+     */
     private void checkForCombinations(ArrayList<Integer> occurrencesOfDices) {
-        //Check Full house
+        //Check for Full house
         ArrayList<Integer> sortedOccurences = new ArrayList<>(occurrencesOfDices);
         Collections.sort(sortedOccurences);
         if (unUsedScoreFields.contains("Full house") && sortedOccurences.get(5) == 3 && sortedOccurences.get(4) == 2) {
@@ -309,21 +391,23 @@ public class Yatzy extends JPanel implements Runnable {
                 addCalculatedScore("Full house", sum);
             }
         }
-        //Check sm straight
+        //Check for sm straight
         if (unUsedScoreFields.contains("Sm Straight") && occurrencesOfDices.get(0) == 1 &&
                 occurrencesOfDices.get(1) == 1 &&
                 occurrencesOfDices.get(2) == 1 &&
                 occurrencesOfDices.get(3) == 1 &&
                 occurrencesOfDices.get(4) == 1) {
+            //add the score to calculated Score structure
             addCalculatedScore("Sm Straight", 15);
         }
 
-        //Check lg straight
+        //Check for lg straight
         if (unUsedScoreFields.contains("Lg Straight") && occurrencesOfDices.get(1) == 1 &&
                 occurrencesOfDices.get(2) == 1 &&
                 occurrencesOfDices.get(3) == 1 &&
                 occurrencesOfDices.get(4) == 1 &&
                 occurrencesOfDices.get(5) == 1) {
+            //add the score to calculated Score structure
             addCalculatedScore("Lg Straight", 20);
         }
         //add Chance
@@ -332,46 +416,73 @@ public class Yatzy extends JPanel implements Runnable {
             for (Integer d : dices) {
                 chanceSum += d;
             }
+            //add the score to calculated Score structure
             addCalculatedScore("Chance", chanceSum);
         }
     }
 
+    /**
+     * Add scores to calculated score structure
+     *
+     * @param scoreField - Scorefiled for which the score is added
+     * @param score      - score to add
+     */
     private void addCalculatedScore(String scoreField, int score) {
-        //comboBoxSaveOptions.addItem(scoreField);
         saveResultPanel.addToSaveOptions(scoreField);
         calculatedScores.put(scoreField, score);
     }
 
+    /**
+     * removes the saved scoreField from unusedScoreField
+     *
+     * @param scoreFileld
+     */
     private void updateUnusedScoreFields(String scoreFileld) {
         unUsedScoreFields.remove(scoreFileld);
     }
 
-    private void updateScoreBoard(String choice, int score, int playerNumber) {
+    /**
+     * Update the scorebord
+     *
+     * @param scoreField   - which scorefield to update in the Scoreboard
+     * @param score        - Which score to add to the scoreboard
+     * @param playerNumber - for which player to update the score
+     */
+    private void updateScoreBoard(String scoreField, int score, int playerNumber) {
+        //Check if the update is for your self
         if (playerNumber == game.getPositionInGame()) {
             playerNumber = 1;
 
         } else {
+            //corrects the player "column" to update if the player is the first player in the game
             if (playerNumber < game.getPositionInGame()) {
                 playerNumber = game.getPositionInGame();
             }
         }
 
-        scoreboard.updateScoreBoard(playerNumber, choice, score);
+        //Update the scoreBoard
+        scoreboard.updateScoreBoard(playerNumber, scoreField, score);
+        //Check if it the players own scoreBoard to update the remove saved score from unused scorefields
         if (playerNumber == 1) {
-            updateUnusedScoreFields(choice);
+            updateUnusedScoreFields(scoreField);
         }
+        //Check if all scores are used
         if (unUsedScoreFields.size() < 1) {
             sendMessage("player_completed_game", "na");
             game.increasePlayersCompletedGame();
         }
     }
 
+    /**
+     * Calculate and show the winner
+     */
     private void showWinner() {
         int winner = 1;
         int highestScore = 0;
         String winnerText = "";
 
         ArrayList<Integer> finalResult = new ArrayList<>();
+        //Check which fields to check for winner
         switch (game.getNumberOfPlayers()) {
             case 4:
                 finalResult.add(scoreboard.getScoreFieldValue("P4Grand total"));
@@ -381,6 +492,7 @@ public class Yatzy extends JPanel implements Runnable {
                 finalResult.add(scoreboard.getScoreFieldValue("P2Grand total"));
                 finalResult.add(scoreboard.getScoreFieldValue("P1Grand total"));
         }
+        //Check for which player is the winner
         Collections.reverse(finalResult);
         for (int i = 0; i < finalResult.size(); i++) {
             if (finalResult.get(i) > highestScore) {
@@ -389,6 +501,7 @@ public class Yatzy extends JPanel implements Runnable {
             }
         }
 
+        //Display the winner
         if (winner == 1) {
             winnerText = "YOU";
         } else {
@@ -397,10 +510,16 @@ public class Yatzy extends JPanel implements Runnable {
         JOptionPane.showMessageDialog(this, "The winner is " + winnerText + " with a score of " + highestScore + "!");
     }
 
+    /**
+     * save score, Show savescore window
+     *
+     * @param strikeOut - boolean to know if strike out or save score
+     */
     private void saveScore(boolean strikeOut) {
         int score;
         String choice;
 
+        //Check if strike out or to save score
         if (strikeOut) {
             choice = saveResultPanel.getSelectedStrikeOutOption();
             score = 0;
@@ -409,8 +528,12 @@ public class Yatzy extends JPanel implements Runnable {
             score = calculatedScores.get(choice);
         }
 
+        //Notify server that the turn is completed
         sendMessage("turn_completed", choice + ";;" + score);
+
+        //update scoreboard
         updateScoreBoard(choice, score, game.getPositionInGame());
+        //clear diced and disable buttons
         dices.clear();
         mainPanel.buttonSaveResult.setEnabled(false);
         mainPanel.buttonRollDices.setEnabled(false);
@@ -418,14 +541,19 @@ public class Yatzy extends JPanel implements Runnable {
         mainPanel.displayNewDices(new String[]{"-", "-", "-", "-", "-"});
     }
 
+    /**
+     * Check possible scores and save the chosen one
+     */
     private void saveDices() {
         //prepare enviroment
         calculatedScores.clear();
         saveResultPanel.clearAllSaveOptions();
 
+        //Check possible scores
         checkSingels();
         checkCombinations();
 
+        //add not possible scores that are unused to strike out dropdown
         for (String s : unUsedScoreFields) {
             if (!calculatedScores.containsKey(s)) {
                 saveResultPanel.addToStrikeOutOptions(s);
@@ -437,9 +565,10 @@ public class Yatzy extends JPanel implements Runnable {
                 "Cancel"};
         int buttonpressed = JOptionPane.showOptionDialog(null, saveResultPanel, "Save score", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[2]);
 
+        //Save score depending on button pressed
         switch (buttonpressed) {
             case JOptionPane.YES_OPTION:
-                if(saveResultPanel.checkSaveOptions()) {
+                if (saveResultPanel.checkSaveOptions()) {
                     saveScore(false);
                 }
                 break;
@@ -453,7 +582,7 @@ public class Yatzy extends JPanel implements Runnable {
      * Setup communication with the server, Starts the GUI
      */
     private static void createAndShowGUI() {
-         //Creates connection to server
+        //Creates connection to server
         Socket socket = null;
         PrintWriter socketWriter = null;
         BufferedReader socketReader = null;
@@ -504,6 +633,7 @@ public class Yatzy extends JPanel implements Runnable {
                     String messageCode = xmlDocumentHandler.parseXml(incommingMessage, "code");
                     String[] messageParts = xmlDocumentHandler.parseXml(incommingMessage, "body").split(";;");
 
+                    //Choose action depending on code received
                     switch (messageCode) {
                         case "chatt":
                             String sender[] = messageParts[0].split(":");
@@ -517,8 +647,6 @@ public class Yatzy extends JPanel implements Runnable {
                             if (!messageParts[0].equals("-1")) {
                                 player.setID(Integer.valueOf(messageParts[0]));
                                 JOptionPane.showMessageDialog(this, "New user successfully created!");
-                                //player.setName(jTextFilednewUserInputName.getText());
-                                //player.setEmail(jTextFieldnewUserInputEmail.getText());
                             } else {
                                 player.setID(-1);
                             }
@@ -602,6 +730,5 @@ public class Yatzy extends JPanel implements Runnable {
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
-
     }
 }

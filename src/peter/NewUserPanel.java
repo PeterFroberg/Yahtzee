@@ -8,6 +8,9 @@ public class NewUserPanel extends JPanel{
     private JTextField jTextFieldnewUserInputEmail = new JTextField(45);
     private JTextField jTextFieldnewUserInputPassword = new JPasswordField(45);
 
+    /**
+     * Creates a NewUserPanel, used for adding new users of the game
+     */
     public NewUserPanel(){
         JPanel leftNewUserPanel = new JPanel();
         leftNewUserPanel.setLayout(new GridLayout(3, 2, 5, 5));

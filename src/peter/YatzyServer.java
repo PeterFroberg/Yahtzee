@@ -38,20 +38,33 @@ public class YatzyServer implements Runnable {
         this.playerMessageQueue = playerMessageQueue;
     }
 
-    private void createNewUser(String message){
+    /**
+     * Create User, send a create request to the database handler and send a result of the create user request to the player
+     *
+     * @param message - Message including username, email and password for the user to create, each property separated with ;;
+     */
+    private void createNewUser(String message) {
         databaseHandler.connectToDatabase();
         String[] newUserParts = message.split(";;");
         int newDBID = databaseHandler.CreateNewPlayer(newUserParts[0], newUserParts[1], newUserParts[2]);
+        //notify the user of the result
         if (newDBID != 0) {
             sendToMyMessageQueue("new_user", String.valueOf(newDBID));
         }
         //databaseHandler.disconnectDatabase();
     }
 
+    /**
+     * Login player to the server, sends a request to verify email and password to the databasehandler and return a message to the
+     * player trying to login
+     *
+     * @param message - message including email and password for the user trying to login, each property separated with ;;
+     */
     private void loginPlayer(String message) {
         databaseHandler.connectToDatabase();
         String[] loginUserParts = message.split(";;");
         player = databaseHandler.login(loginUserParts[0], loginUserParts[1]);
+        //notifying the player of the login result
         if (player != null) {
             sendToMyMessageQueue("login_user", player.getID() + ";;" + player.getName() + ";;" + player.getEmail());
         } else {
@@ -61,73 +74,117 @@ public class YatzyServer implements Runnable {
         //databaseHandler.disconnectDatabase();
     }
 
-    private void invitePlayers(String message){
+    /**
+     * invite player to the game, sends a request to the databasehandler to create a game and add users
+     *
+     * @param message - message including player emails for the invited players, each property separated with ;
+     */
+    private void invitePlayers(String message) {
         databaseHandler.connectToDatabase();
+        //extract info from message
         String[] invitedPlayersParts = message.split(";");
         String[] players = invitedPlayersParts[2].split(";");
         currentGame.setNumberOfPlayers(players.length + 1);
         currentGame.setID(databaseHandler.invitePlayers(invitedPlayersParts[0], players));
         String body = "You are invited for a game of Yahtzee by " + invitedPlayersParts[0] + "\n Start the yahtzee program and use the \"join game\" option and input the game# " + String.valueOf(currentGame.getID()) + " in the play menu to join";
         String result = "";
+        //Sends a invitation email to the invited players
         for (String playerToInvite : players) {
             result = mailhandler.send(playerToInvite, "testarepostkurs@gmail.com", "Yahtzee invitation", body);
         }
         currentGame.setPositionInGame(1);
+        //notify the inviting player of created game
         sendToMyMessageQueue("invitations", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + result);
+        //add inviting player to the new game
         databaseHandler.addPlayerToGame(currentGame.getID(), Integer.parseInt(invitedPlayersParts[1]));
+        //Create communicationscahnnel for in game communication
         createCommnunicationForGame();
+        //Request a thread to check if all players are connected to the game
         checkGameStarted();
     }
 
-    private void joinPlayerToGame(String message){
+    /**
+     * Join invited players to the game
+     *
+     * @param message - message with player ID, email of player, game to join, each property separated with ;;
+     */
+    private void joinPlayerToGame(String message) {
         databaseHandler.connectToDatabase();
-        String[] joinGameParts = message.split(";");
+        //extract info from message
+        String[] joinGameParts = message.split(";;");
         int playerID = Integer.parseInt(joinGameParts[0]);
         String playerEmail = joinGameParts[1];
         currentGame.setID(Integer.parseInt(joinGameParts[2]));
+        //Add player to the game
         String playerAdded = databaseHandler.joinGame(playerID, playerEmail, currentGame.getID());
         String[] playerAddedToGameParts = playerAdded.split(";;");
+        //update game object with game details
         currentGame.setPositionInGame(Integer.parseInt(playerAddedToGameParts[1]));
         currentGame.setNumberOfPlayers(Integer.parseInt(playerAddedToGameParts[0]));
+        //notify players in the game
         sendToMyMessageQueue("player_added_to_game", currentGame.getPositionInGame() + ";;" + currentGame.getNumberOfPlayers() + ";;" + playerAddedToGameParts[2]);
-        sendToInGamePlayers("newPlayerJoined",player.getName() + ";;" + currentGame.getPositionInGame(), false);
+        sendToInGamePlayers("newPlayerJoined", player.getName() + ";;" + currentGame.getPositionInGame(), false);
         joinCommunicationForGame();
         //databaseHandler.disconnectDatabase();
     }
 
-    private void turnCompleted(String message){
+    /**
+     * turn completed, handles when a player have completed its turn and send turn information to players
+     *
+     * @param message
+     */
+    private void turnCompleted(String message) {
+        //extract info from message
         String[] turnCompetedParts = message.split(";;");
+        String scoreField = turnCompetedParts[0];
+        String score = turnCompetedParts[1];
         int nextPlayer = currentGame.getPositionInGame() + 1;
         if (nextPlayer > currentGame.getNumberOfPlayers()) {
             nextPlayer = 1;
         }
-        String newMessage = nextPlayer + ";;" + currentGame.getPositionInGame() + ";;" + turnCompetedParts[0] + ";;" + turnCompetedParts[1];
+        //Notify players of next player to play and send score info to other players
+        String newMessage = nextPlayer + ";;" + currentGame.getPositionInGame() + ";;" + scoreField + ";;" + score;
         sendToInGamePlayers("players_turn", newMessage, false);
     }
 
-    private void playerCompletedGame(){
+    /**
+     * player Completed game, update game info about how many players that have completed the game, when all players completed game
+     * the player is notified
+     */
+    private void playerCompletedGame() {
         currentGame.increasePlayersCompletedGame();
+        //check if all players completed the game, and notify player
         if (currentGame.getNumberOfPlayers() - currentGame.getPlayersCompletedGame() == 0) {
             sendToInGamePlayers("game_completed", "na", true);
-            databaseHandler.setGameState(currentGame.getID(),"Finished");
+            databaseHandler.setGameState(currentGame.getID(), "Finished");
         } else {
             sendToInGamePlayers("player_completed_game", "na", false);
         }
     }
 
+    /**
+     * Create a new communication channel for ingame communications and adds the player to the channel
+     */
     private void createCommnunicationForGame() {
         gameMessagesQueues = new CopyOnWriteArrayList<>();
         gameMessagesQueues.add(playerMessageQueue);
         gamesMessagingQueues.put(currentGame.getID(), gameMessagesQueues);
     }
 
+    /**
+     * add player to ingame communication channel
+     */
     private void joinCommunicationForGame() {
         gameMessagesQueues = gamesMessagingQueues.get(currentGame.getID());
         gameMessagesQueues.add(playerMessageQueue);
     }
 
+    /**
+     * Checks if the game is started by requesting a check from the databasehandler if state is changed to started
+     * and if started informs players that game is started. Only the inviting player checks for game to start
+     */
     private void checkGameStarted() {
-
+        //Create a thread to check if game is started
         new Thread(() -> {
             boolean started = false;
             while (!started) {
@@ -138,13 +195,19 @@ public class YatzyServer implements Runnable {
                     e.printStackTrace();
                 }
             }
-            sendToInGamePlayers("newPlayerJoined",player.getName() + ";;" + currentGame.getPositionInGame(), false);
+            //Notify players that the game is started
             sendToInGamePlayers("game_started", "Game is started, Please wait for your turn", true);
+            //change game state to "playing"
             databaseHandler.setGameState(currentGame.getID(), "playing");
             //databaseHandler.disconnectDatabase();
         }).start();
     }
 
+    /**
+     * Roll dices, generated 5 "dices" by generate 5 random numbers between 1 -6
+     *
+     * @return - return String with each dice separated with ;;
+     */
     private String rollDices() {
         StringBuilder randomNumbers = new StringBuilder();
         Random rand = new Random();
@@ -172,7 +235,6 @@ public class YatzyServer implements Runnable {
                 try {
                     String xmlString = xmlDocumentHandler.createXmlString(messageCode, player, message, currentGame);
                     synchronized (Lock) {
-                        //que.put(messageCode + message);
                         que.put(xmlString);
                     }
                 } catch (InterruptedException e) {
@@ -190,9 +252,8 @@ public class YatzyServer implements Runnable {
      */
     private void sendToMyMessageQueue(String messageCode, String message) {
         try {
-            String xmmlString = xmlDocumentHandler.createXmlString(messageCode, player , message, currentGame);
+            String xmmlString = xmlDocumentHandler.createXmlString(messageCode, player, message, currentGame);
             synchronized (Lock) {
-                //playerMessageQueue.put(messageCode + message);
                 playerMessageQueue.put(xmmlString);
             }
         } catch (InterruptedException e) {
@@ -206,26 +267,20 @@ public class YatzyServer implements Runnable {
          * Creates Sockets for server and client connections
          */
         ServerSocket serverSocket = null;
-        Socket clientSocket = null;
+        Socket clientSocket;
 
         /**
          * start the server
          */
         try {
             serverSocket = new ServerSocket(DEFAULTPORT);
-            //CopyOnWriteArrayList<LinkedBlockingQueue<String>> clientMessageQueues = new CopyOnWriteArrayList<>();
-            //LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
-            /**
-             * wait for incoming connections from clients and spawn a new thread for each client
-             * and waits for the next client to connect
-             */
+            // wait for incoming connections from clients and spawn a new thread for each client
+            // and waits for the next client to connect
             while (true) {
                 clientSocket = serverSocket.accept();
                 LinkedBlockingQueue<String> playerMessageQueue = new LinkedBlockingQueue<>();
-                //clientMessageQueues.add(playerMessageQueue);
-                //System.out.println("There is now: " + clientMessageQueues.size() + " players connected to the server.");
-                System.out.println("There is now: a new player connected to the server.");
+                System.out.println("There is now a new player connected to the server.");
                 YatzyServer yatzyServer = new YatzyServer(clientSocket, playerMessageQueue);
                 Thread thread = new Thread(yatzyServer);
                 thread.start();
@@ -236,6 +291,7 @@ public class YatzyServer implements Runnable {
         } finally {
 
             try {
+                //close connection if open
                 if (serverSocket != null) {
                     serverSocket.close();
                 }
@@ -244,8 +300,6 @@ public class YatzyServer implements Runnable {
                 e.printStackTrace();
             }
         }
-
-
     }
 
 
@@ -275,12 +329,12 @@ public class YatzyServer implements Runnable {
                 }
             }).start();
 
-            // create a Thread to check for when to start game
             socketReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             String incommingMessage = socketReader.readLine();
             System.out.println(incommingMessage);
 
+            //create a loop to check for incoming messages from player
             while (gameActive) {
                 String messageCode = xmlDocumentHandler.parseXml(incommingMessage, "code");
                 String message = xmlDocumentHandler.parseXml(incommingMessage, "body");
@@ -288,27 +342,26 @@ public class YatzyServer implements Runnable {
                     case "chatt":
                         sendToInGamePlayers("chatt", message, true);
                         break;
-                    case "login":
-                        loginPlayer(message);
-                        break;
-                    case "new_user":
-                        createNewUser(message);
-                        break;
                     case "invite_players":
                         invitePlayers(message);
                         break;
                     case "join_game":
                         joinPlayerToGame(message);
                         break;
-                    case "turn_completed":
-                        turnCompleted(message);
+                    case "login":
+                        loginPlayer(message);
                         break;
-                    case "roll_dices":
-                        sendToMyMessageQueue("rolled_dices", rollDices());
-                        //sendToMyMessageQueue("rolled_dices::", "3;;3;;6;;6;;6");
+                    case "new_user":
+                        createNewUser(message);
                         break;
                     case "player_completed_game":
                         playerCompletedGame();
+                        break;
+                    case "roll_dices":
+                        sendToMyMessageQueue("rolled_dices", rollDices());
+                        break;
+                    case "turn_completed":
+                        turnCompleted(message);
                         break;
                 }
                 Thread.sleep(100);
@@ -334,7 +387,5 @@ public class YatzyServer implements Runnable {
         } finally {
             gameMessagesQueues.remove(playerMessageQueue);
         }
-
     }
-
 }
