@@ -1,3 +1,9 @@
+/**
+ * @author  Peter Fröberg, pefr7147@student.su.se
+ * @version 1.0
+ * @since   2020-06-04
+ */
+
 package peter;
 
 import java.sql.*;
@@ -13,20 +19,16 @@ public class DatabaseHandler {
     public void connectToDatabase() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
+
             dbConnection = DriverManager.getConnection(System.getenv("dbserver"), System.getenv("sqluser"), System.getenv("sqlpassword"));
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    public void disconnectDatabase() {
-        try {
-            dbConnection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
+    /**
+     * Close SQL Statment
+     */
     private void closeSQLStatement() {
         try {
             sqlStatement.close();
@@ -48,7 +50,9 @@ public class DatabaseHandler {
             sqlStatement.setString(1, email);
             sqlStatement.setString(2, password);
             ResultSet resultSet = sqlStatement.executeQuery();
+            //Check if user was found
             if (resultSet.next()) {
+                //create Player object with info from database
                 Player player = new Player();
                 player.setID(resultSet.getInt("ID"));
                 player.setName((resultSet.getString("name")));
@@ -72,7 +76,9 @@ public class DatabaseHandler {
      * @param password
      * @return Return the new players ID in the database
      */
-    public int CreateNewPlayer(String name, String email, String password) {
+    public Player CreateNewPlayer(String name, String email, String password) {
+        Player player = new Player();
+        player.setID(-1);
         try {
             sqlStatement = dbConnection.prepareStatement("INSERT INTO players (name, email, password) VALUES(?,?,?)", Statement.RETURN_GENERATED_KEYS);
             sqlStatement.setString(1, name);
@@ -80,29 +86,34 @@ public class DatabaseHandler {
             sqlStatement.setString(3, password);
             sqlStatement.executeUpdate();
             ResultSet rs = sqlStatement.getGeneratedKeys();
+
             if (rs.next()) {
-                int newDbId = rs.getInt(1);
-                return newDbId;
+                player = new Player();
+                player.setID(rs.getInt(1));
+                player.setName(name);
+                player.setEmail(email);
+                return player;
             }
         } catch (SQLIntegrityConstraintViolationException e) {
             System.out.println("duplicate user");
-            return -1;
+            player.setID(-2);
+            return player ;
         } catch (SQLException e) {
             e.printStackTrace();
         }finally {
             closeSQLStatement();
         }
-        return -1;
+
+        return player;
     }
 
     /**
      * Adds invited players to the invite list in the DB
      *
-     * @param invitingPlayer
      * @param invitedPlayers
      * @return returns the gameID for the new game created in the method createGame
      */
-    public int invitePlayers(String invitingPlayer, String[] invitedPlayers) {
+    public int invitePlayers(String[] invitedPlayers) {
         int newGameID = 0;
         //Create GAME
         newGameID = createGame(invitedPlayers.length + 1);
@@ -142,13 +153,17 @@ public class DatabaseHandler {
         return playerAdded;
     }
 
+    /**
+     * Check if game state is started for the supplied gameID
+     * @param gameId - GameID to check state for
+     * @return - Returns true if state is start otherwise return false
+     */
     public boolean checkGameStarted(int gameId){
         try {
             sqlStatement = dbConnection.prepareStatement("SELECT * FROM games WHERE ID = ?");
             sqlStatement.setInt(1, gameId);
             ResultSet resultSet= sqlStatement.executeQuery();
             if(resultSet.next()){
-                //if(resultSet.getString("gameState").equals("start") || resultSet.getString("gameState").equals("playing")){
                 if(resultSet.getString("gameState").equals("start")){
                     return true;
                 }
@@ -217,6 +232,11 @@ public class DatabaseHandler {
         return playerConnected;
     }
 
+    /**
+     * Change the game state for the supplied GameID
+     * @param gameID - GameID to change state for
+     * @param newGameState - state to change the game to
+     */
     public void setGameState(int gameID, String newGameState){
         try {
             sqlStatement = dbConnection.prepareStatement("UPDATE games SET gameState = ? WHERE ID = ?");
@@ -317,6 +337,26 @@ public class DatabaseHandler {
         }
 
         return max_position;
+    }
+
+    public String getPlayersInGame(int gameID) {
+        ResultSet resultSet = null;
+        String playersInGame = "";
+        try {
+            sqlStatement = dbConnection.prepareStatement("SELECT players.name, playinggame.positionInGame FROM playinggame LEFT JOIN players on playinggame.playerID = players.id WHERE playinggame.gameid = ?");
+            sqlStatement.setInt(1, gameID);
+            resultSet = sqlStatement.executeQuery();
+            while(resultSet.next()){
+                playersInGame = playersInGame + resultSet.getString("name") + ";";
+                playersInGame = playersInGame + resultSet.getInt("positionInGame") + ";";
+            }
+            playersInGame = playersInGame.substring(0, playersInGame.length() -1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            closeSQLStatement();
+        }
+        return playersInGame;
     }
 
 }

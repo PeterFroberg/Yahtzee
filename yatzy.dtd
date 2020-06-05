@@ -4,9 +4,9 @@
 <!ELEMENT type (#PCDATA)>
 <!ELEMENT version (#PCDATA)>
 <!ELEMENT code (#PCDATA)>
-<!ELEMENT id (name, email, gamenum, playerpostion)>
+<!ELEMENT id (name, email, gamenum, playerposition)>
 <!ELEMENT name (#PCDATA)>
 <!ELEMENT email (#PCDATA)>
 <!ELEMENT gamenum (#PCDATA)>
-<!ELEMENT playerpostion (#PCDATA)>
+<!ELEMENT playerposition (#PCDATA)>
 <!ELEMENT body (#PCDATA)>

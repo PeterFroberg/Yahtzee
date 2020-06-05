@@ -1,3 +1,9 @@
+/**
+ * @author  Peter Fröberg, pefr7147@student.su.se
+ * @version 1.0
+ * @since   2020-06-04
+ */
+
 package peter;
 
 import java.util.ArrayList;

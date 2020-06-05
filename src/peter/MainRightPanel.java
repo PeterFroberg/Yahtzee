@@ -7,7 +7,7 @@ import java.awt.*;
 public class MainRightPanel extends JPanel {
 
     public JButton buttonSendChat = new JButton("Send");
-    private JTextArea jTextAreaChatInput = new JTextArea("Inmatning av chatt", 20, 15);
+    private JTextArea jTextAreaChatInput = new JTextArea("", 20, 15);
     private static JTextPane jTextPaneChatArea = new JTextPane();
     JScrollPane jScrollPaneChatArea = new JScrollPane(jTextPaneChatArea);
 
@@ -15,19 +15,12 @@ public class MainRightPanel extends JPanel {
         setLayout(new BorderLayout());
 
         JPanel rightTopPanel = new JPanel(new BorderLayout());
-        JPanel rightMiddelPanel = new JPanel(new BorderLayout());
+        JPanel rightMiddelPanel = new JPanel();
         JPanel rightBottomPanel = new JPanel();
 
-        //JPanel mainRightPanel = new JPanel(new BorderLayout());
         add(rightTopPanel, BorderLayout.NORTH);
         add(rightMiddelPanel, BorderLayout.CENTER);
         add(rightBottomPanel, BorderLayout.SOUTH);
-
-
-        //jTextPaneChatArea.setEditable(false);
-        //jTextPaneChatArea.getCaret().setVisible(true);
-        //jTextAreaChatArea.setLineWrap(true);
-        //jTextAreaChatArea.setWrapStyleWord(true);
 
         DefaultCaret caret = (DefaultCaret) jTextPaneChatArea.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
@@ -36,10 +29,11 @@ public class MainRightPanel extends JPanel {
         rightTopPanel.add(jScrollPaneChatArea);
 
         //Populate rightmiddel panel
-
+        rightMiddelPanel.add(new JLabel("Chat input:"));
         jTextAreaChatInput.setLineWrap(true);
         jTextAreaChatInput.setWrapStyleWord(true);
         rightMiddelPanel.add(jTextAreaChatInput);
+
 
         //Populate rightbottom panel
 
@@ -64,6 +58,10 @@ public class MainRightPanel extends JPanel {
 
     public String getNewChatMessage(){
         return jTextAreaChatInput.getText();
+    }
+
+    public void clearChatInput(){
+        jTextAreaChatInput.setText("");
     }
 
     public void appendNewChattMessage(String msg, Color c) {

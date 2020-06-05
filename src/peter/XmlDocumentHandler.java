@@ -1,3 +1,10 @@
+/**
+ *
+ * @author  Peter Fröberg, pefr7147@student.su.se
+ * @version 1.0
+ * @since   2020-06-04
+ */
+
 package peter;
 
 import org.jdom2.DocType;
@@ -36,16 +43,23 @@ public class XmlDocumentHandler {
         Element nameElement = new Element("name");
         Element emailElement = new Element("email");
         Element gamenumElement = new Element("gamenum");
-        Element playerpositionElement = new Element("playerpostion");
+        Element playerpositionElement = new Element("playerposition");
         Element bodyElement = new Element("body");
 
         //Set end-node values
         typeElement.addContent("YCP");
         versionElement.addContent("1.0");
         codeElement.addContent(code);
-        nameElement.addContent(player.getName());
-        emailElement.addContent(player.getEmail());
-        gamenumElement.addContent(String.valueOf(game.getID()));
+        if (player != null) {
+            nameElement.addContent(player.getName());
+            emailElement.addContent(player.getEmail());
+            gamenumElement.addContent(String.valueOf(game.getID()));
+        }else{
+            nameElement.addContent("");
+            emailElement.addContent("");
+            gamenumElement.addContent("");
+        }
+
         playerpositionElement.addContent(String.valueOf(game.getPositionInGame()));
         bodyElement.addContent(body);
 
@@ -63,7 +77,7 @@ public class XmlDocumentHandler {
         idElement.addContent(playerpositionElement);
 
         //Define document Type
-        DocType docType = new DocType("message", null, "./Yatzy.dtd");
+        DocType docType = new DocType("message", null, "http://lejonqvist.se/yatzy.dtd");
 
         //Return and convert the document to a String representation
         return convertToString(new Document(messageElement, docType));

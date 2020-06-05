@@ -1,9 +1,16 @@
+/**
+ * @author  Peter Fröberg, pefr7147@student.su.se
+ * @version 1.0
+ * @since   2020-06-04
+ */
+
+
 package peter;
 
 public class Player {
     private int ID = 0;
-    private String name;
-    private String email;
+    private String name = "";
+    private String email = "";
 
     public Player() {
 

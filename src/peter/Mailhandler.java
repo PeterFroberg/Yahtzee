@@ -29,11 +29,11 @@ public class Mailhandler {
          */
 
         mailingproperites = System.getProperties();
-        mailingproperites.put("mail.smtp.starttls.enable", true);
+        mailingproperites.put("mail.smtp.starttls.enable", "true");
         mailingproperites.put("mail.smtp.port", 587);
         mailingproperites.put("mail.smtp.host", server);
         mailingproperites.put("mail.transport.protocol", "smtp");
-        mailingproperites.put("mail.smtp.auth", true);
+        mailingproperites.put("mail.smtp.auth", "true");
 
         /**
          * creates an password Athenticator for the SMTP Session
@@ -47,12 +47,24 @@ public class Mailhandler {
         session = Session.getDefaultInstance(mailingproperites, auth);
 
     }
+
+    /**
+     * SMTP Authentication class to enable authentication for gmail mailserver.
+     */
     private class SMTPAuthenticator extends javax.mail.Authenticator{
         public PasswordAuthentication getPasswordAuthentication() {
             return new PasswordAuthentication(mailServerUser, mailserverPassword);
         }
     }
 
+    /**
+     * Send the email to the mailserver
+     * @param to - Emailrecipient
+     * @param from - Sender of the email
+     * @param subject - subject of the email
+     * @param body - the body of the email being sent
+     * @return - returns the result text of sending the email which will be passed to the player
+     */
     public String send(String to, String from, String subject, String body)  {
         String resultText = "";
 

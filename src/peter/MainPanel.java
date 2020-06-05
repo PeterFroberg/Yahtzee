@@ -2,6 +2,7 @@ package peter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class MainPanel extends JPanel {
     private JTextField jTextFieldDiceResult1 = new JTextField("-");
@@ -21,8 +22,6 @@ public class MainPanel extends JPanel {
     public MainPanel(){
         setLayout(new GridLayout(2,6));
         add(new JLabel("Dices"));
-//        ImageIcon dice1Icon = new ImageIcon("C:/Users/Peter/IdeaProjects/Yahtzee/src/peter/aec.png");
-//        mainTopPanel.add(new JLabel(dice1Icon));
 
         jTextFieldDiceResult1.setEditable(false);
         jTextFieldDiceResult1.setHorizontalAlignment(JTextField.CENTER);
@@ -67,6 +66,10 @@ public class MainPanel extends JPanel {
         add(buttonSaveResult);
     }
 
+    /**
+     * Updates the dices displayed on the game bord, do not update if the checkbox for saving the dice is checked
+     * @param dicesStrings - new dices to add to the board
+     */
     public void displayNewDices(String[] dicesStrings) {
         //Display dices in GUI
         if (!jCheckBoxDiceResult1.isSelected()) {
@@ -86,12 +89,30 @@ public class MainPanel extends JPanel {
         }
     }
 
+    /**
+     * Uncheck the check boxes under each dice on the game board
+     */
     public void uncheckDices() {
         jCheckBoxDiceResult1.setSelected(false);
         jCheckBoxDiceResult2.setSelected(false);
         jCheckBoxDiceResult3.setSelected(false);
         jCheckBoxDiceResult4.setSelected(false);
         jCheckBoxDiceResult5.setSelected(false);
+    }
+
+    /**
+     * Gets the current dices on the game board
+     * @return - returns a ArrayList with the current dices on the board
+     */
+    public ArrayList<Integer> getDicesFromBoard(){
+        ArrayList<Integer> dices = new ArrayList<>();
+        dices.add(Integer.parseInt(jTextFieldDiceResult1.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult2.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult3.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult4.getText()));
+        dices.add(Integer.parseInt(jTextFieldDiceResult5.getText()));
+
+        return dices;
     }
 
 }
