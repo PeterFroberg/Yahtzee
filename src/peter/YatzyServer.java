@@ -22,12 +22,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class YatzyServer implements Runnable {
 
     private DatabaseHandler databaseHandler = new DatabaseHandler();
-    private Mailhandler mailhandler = new Mailhandler(System.getenv("mailServer"), System.getenv("mailUserName"), System.getenv("mailPassword"));
-
+    private Mailhandler mailhandler = new Mailhandler("smtp.gmail.com", "xx", "xx");
 
     private final static int DEFAULTPORT = 2000;
+    private final static String DEFAULTDBSERVER = "xx";
+    private final static String DEFAULTDBUSER = "xx";
+    private final static String DEFAULTDBPASSWORD = "xx";
+
     private static ConcurrentHashMap<Integer, CopyOnWriteArrayList<LinkedBlockingQueue<String>>> gamesMessagingQueues = new ConcurrentHashMap<>();
-    private static CopyOnWriteArrayList<LinkedBlockingQueue<String>> gameMessagesQueues; // = new CopyOnWriteArrayList<>();
+    private static CopyOnWriteArrayList<LinkedBlockingQueue<String>> gameMessagesQueues;
 
     private final static Object Lock = new Object();
     private final Socket clientSocket;
@@ -36,12 +39,25 @@ public class YatzyServer implements Runnable {
     private LinkedBlockingQueue<String> playerMessageQueue;
     private Game currentGame = new Game();
     private Player player;
+    private String dbServer;
+    private String dbUser;
+    private String dbPassword;
 
     private XmlDocumentHandler xmlDocumentHandler = new XmlDocumentHandler();
 
-    private YatzyServer(Socket clientSocket, LinkedBlockingQueue<String> playerMessageQueue) {
+    private YatzyServer(Socket clientSocket, LinkedBlockingQueue<String> playerMessageQueue, String[] args) {
         this.clientSocket = clientSocket;
         this.playerMessageQueue = playerMessageQueue;
+        if(args.length == 3) {
+            dbServer = args[0];
+            dbUser = args[1];
+            dbPassword = args[2];
+        }else{
+            dbServer = DEFAULTDBSERVER;
+            dbUser = DEFAULTDBUSER;
+            dbPassword = DEFAULTDBPASSWORD;
+        }
+
     }
 
     /**
@@ -50,7 +66,7 @@ public class YatzyServer implements Runnable {
      * @param message - Message including username, email and password for the user to create, each property separated with ;;
      */
     private void createNewUser(String message) {
-        databaseHandler.connectToDatabase();
+        databaseHandler.connectToDatabase(dbServer, dbUser, dbPassword);
         String[] newUserParts = message.split(";;");
         String name = newUserParts[0];
         String email = newUserParts[1];
@@ -67,7 +83,7 @@ public class YatzyServer implements Runnable {
      * @param message - message including email and password for the user trying to login, each property separated with ;;
      */
     private void loginPlayer(String message) {
-        databaseHandler.connectToDatabase();
+        databaseHandler.connectToDatabase(dbServer, dbUser, dbPassword);
         String[] loginUserParts = message.split(";;");
         String username = loginUserParts[0];
         String password = loginUserParts[1];
@@ -87,7 +103,7 @@ public class YatzyServer implements Runnable {
      * @param message - message including player emails for the invited players, each property separated with ;
      */
     private void invitePlayers(String message) {
-        databaseHandler.connectToDatabase();
+        databaseHandler.connectToDatabase(dbServer, dbUser, dbPassword);
         //extract info from message
         String[] invitedPlayersParts = message.split(";;");
         String[] players = invitedPlayersParts[2].split(";");
@@ -118,7 +134,7 @@ public class YatzyServer implements Runnable {
      * @param message - message with player ID, email of player, game to join, each property separated with ;;
      */
     private void joinPlayerToGame(String message) {
-        databaseHandler.connectToDatabase();
+        databaseHandler.connectToDatabase(dbServer, dbUser, dbPassword);
         //extract info from message
         String[] joinGameParts = message.split(";;");
         int playerID = Integer.parseInt(joinGameParts[0]);
@@ -276,7 +292,7 @@ public class YatzyServer implements Runnable {
     }
 
     public static void main(String[] args) {
-        System.out.println("Server started");
+        System.out.println("Server started and accepting clients on port: " + DEFAULTPORT);
         /**
          * Creates Sockets for server and client connections
          */
@@ -295,7 +311,7 @@ public class YatzyServer implements Runnable {
                 clientSocket = serverSocket.accept();
                 LinkedBlockingQueue<String> playerMessageQueue = new LinkedBlockingQueue<>();
                 System.out.println("There is now a new player connected to the server.");
-                YatzyServer yatzyServer = new YatzyServer(clientSocket, playerMessageQueue);
+                YatzyServer yatzyServer = new YatzyServer(clientSocket, playerMessageQueue, args);
                 Thread thread = new Thread(yatzyServer);
                 thread.start();
             }

@@ -16,11 +16,11 @@ public class DatabaseHandler {
     /**
      * Connect to the database
      */
-    public void connectToDatabase() {
+    public void connectToDatabase(String server, String username, String password) {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-
-            dbConnection = DriverManager.getConnection(System.getenv("dbserver"), System.getenv("sqluser"), System.getenv("sqlpassword"));
+            dbConnection = DriverManager.getConnection(server, username, password);
+            //dbConnection = DriverManager.getConnection(System.getenv("dbserver"), System.getenv("sqluser"), System.getenv("sqlpassword"));
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }

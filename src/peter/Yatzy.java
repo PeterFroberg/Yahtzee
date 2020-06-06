@@ -211,10 +211,18 @@ public class Yatzy extends JPanel implements Runnable {
                     , JOptionPane.PLAIN_MESSAGE);
             //Check if OK button is pressed
             if (buttonPressed == JOptionPane.OK_OPTION) {
-                //Send invitation request to server
-                sendMessage("invite_players", player.getEmail() + ";;" + player.getID() + ";;" + invitePlayerPanel.getInviteedPlayers());
+                //Check the number of players invited is more than 4
+                String[] invitedPlayers = invitePlayerPanel.getInviteedPlayers().split(";");
+                if(invitedPlayers.length < 5) {
+                    //Send invitation request to server
+                    sendMessage("invite_players", player.getEmail() + ";;" + player.getID() + ";;" + invitePlayerPanel.getInviteedPlayers());
+                    endInviteInput = true;
+                }else{
+                    JOptionPane.showMessageDialog(this,"Maximum players per game is 4, please remove players so there is a maximum of 4 players to invite.");
+                }
+            }else{
+                endInviteInput = true;
             }
-            endInviteInput = true;
         }
     }
 
